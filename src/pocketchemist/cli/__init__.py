@@ -1,3 +1,3 @@
-from .cli import pocketchemist
+from .cli import main
 
-__all__ = ('pocketchemist',)
+__all__ = ('main',)

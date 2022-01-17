@@ -11,7 +11,7 @@ from ..config import config as config_dict
 @click.group()
 @click.option('--debug', is_flag=True, default=False,
               help="Display debugging information")
-def pocketchemist(debug):
+def main(debug):
     """A pocket chemist to analyze spectra and molecules"""
     # Setup logging
     if debug:
@@ -22,7 +22,7 @@ def pocketchemist(debug):
         coloredlogs.install(level='WARNING')
 
 
-@pocketchemist.command()
+@main.command()
 def config():
     """Display and save the current configuration settings"""
     string = yaml.safe_dump(config_dict)
@@ -33,7 +33,7 @@ def config():
 for entrypoint in entry_points()['pocketchemist']:
     if entrypoint.name == 'cli':
         try:
-            pocketchemist.add_command(entrypoint.load())
+            main.add_command(entrypoint.load())
         except ModuleNotFoundError:
             logging.warning(f"The module '{entrypoint.value}' could not be "
                             f"found.")
