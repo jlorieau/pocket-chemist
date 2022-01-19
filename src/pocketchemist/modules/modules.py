@@ -165,7 +165,10 @@ class TorchModule(GPUModule):
         subitems = subitems if subitems is not None else []
 
         gpu_available = self.gpu_available()
-        subitems += [click.style("GPU (CUDA) Available: ") + str(gpu_available)]
+        subitems += [click.style("GPU (CUDA) Available: ") +
+                     (click.styles(gpu_available, fg='green')
+                      if gpu_available else
+                      click.style(gpu_available, fg='red'))]
 
         super().print(space_level=space_level, item_number=item_number,
                       subitems=subitems)
