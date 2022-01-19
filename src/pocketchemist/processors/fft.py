@@ -1,6 +1,6 @@
 """Processors for FFT"""
 from .processor import Processor
-from .modules import Module, TorchModule
+from ..modules import Module, TorchModule
 
 __all__ = ('FFTProcessor',)
 

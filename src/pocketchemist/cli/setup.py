@@ -8,7 +8,8 @@ import click
 import yaml
 
 from ..config import config as config_dict
-from ..processors import Processor, Module
+from ..processors import Processor
+from ..modules import Module
 from ..utils.classes import all_subclasses
 
 

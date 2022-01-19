@@ -6,7 +6,7 @@ import typing as t
 
 import click
 
-from .modules import Module
+from ..modules import Module
 
 __all__ = ('Processor', 'GroupProcessor')
 
