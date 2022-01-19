@@ -3,9 +3,8 @@ import logging
 
 import click
 import coloredlogs
-import yaml
 
-from ..config import config as config_dict
+from .setup import setup
 
 
 @click.group()
@@ -22,15 +21,12 @@ def main(debug):
         coloredlogs.install(level='WARNING')
 
 
-@main.command()
-def config():
-    """Display and save the current configuration settings"""
-    string = yaml.safe_dump(config_dict)
-    print(string)
+# Add subcommands
+main.add_command(setup)
 
 
 # load plugins
-for entrypoint in entry_points()['pocketchemist']:
+for entrypoint in entry_points().get('pocketchemist', []):
     if entrypoint.name == 'cli':
         try:
             main.add_command(entrypoint.load())
