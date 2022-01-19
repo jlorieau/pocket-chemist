@@ -53,7 +53,7 @@ def modules():
     modules_by_category = groupby(modules_by_category, key=lambda m: m.category)
 
     for category, module_objs in modules_by_category:
-        click.echo(f"Category: {category}")
+        click.echo(click.style("Category: ", bold=True) + category)
 
         for count, module_obj in enumerate(module_objs, 1):
             module_obj.print()

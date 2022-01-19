@@ -12,8 +12,14 @@ click = "^8.0.3"
 coloredlogs = "^15.0.1"
 PyYAML = "^6.0"
 
+# Optional dependencies
+torch = { version = "^1.10", optional = true }
+
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
+
+[tool.poetry.extras]
+speedups = ["torch"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

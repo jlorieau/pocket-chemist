@@ -1,5 +1,6 @@
 """Processors for FFT"""
-from .processor import Processor, Module
+from .processor import Processor
+from .modules import Module, TorchModule
 
 __all__ = ('FFTProcessor',)
 
@@ -8,10 +9,10 @@ class FFTProcessor(Processor):
     """A processor with access to FFT functionality."""
 
     modules = (
-        Module('fft', 'torch', 'fft'),
+        TorchModule('fft', 'torch', 'fft'),
         Module('fft', 'cupy.fft', 'fft'),
         Module('fft', 'numpy.fft', 'fft'),
-        Module('ifft', 'torch', 'ifft'),
+        TorchModule('ifft', 'torch', 'ifft'),
         Module('ifft', 'numpy.fft', 'ifft'),
         Module('ifft', 'cupy.fft', 'ifft'),
     )

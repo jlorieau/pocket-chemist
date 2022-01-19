@@ -3,113 +3,15 @@ Processor base classes
 """
 import abc
 import typing as t
-from types import ModuleType
-from dataclasses import dataclass
-from importlib import import_module
 
 import click
 
-__all__ = ('Module', 'Processor', 'GroupProcessor')
+from .modules import Module
+
+__all__ = ('Processor', 'GroupProcessor')
 
 # The number of spaces to add for printing sub-levels of processors
 space_level = 2
-
-
-@dataclass
-class Module:
-
-    #: The category name of the module
-    category: str
-
-    #: The name of the module
-    name: str
-
-    #: The name of the imported function
-    callable_name: str
-
-    #: Options for printing the module to the terminal
-    print_cls_fg_color = 'cyan'
-
-    _modules = dict()
-
-    def get_module(self) -> t.Union[ModuleType, None]:
-        """Retrieve the module associated with this object
-
-        Returns
-        -------
-        module
-            The loaded module, if available
-            None if the module could not be found
-        """
-        key = self.name
-
-        if key in Module._modules:
-            return Module._modules[key]
-
-        # Try loading the module
-        try:
-            module = import_module(key)
-            Module._modules[key] = module
-        except ImportError:
-            Module._modules[key] = None
-
-        return Module._modules[key]
-
-    def get_callable(self) -> t.Union[t.Callable, None]:
-        """Retrieve the module function.
-
-        Returns
-        -------
-        callable
-            The module's function or callable class, if available.
-            None if the function could not be found.
-        """
-        # See if the module is available, and retrieve the function if it is
-        module = self.get_module()
-        return getattr(module, self.callable_name, None)
-
-    @classmethod
-    def list_instances(cls):
-        """List modules managed by this class"""
-        import gc
-        return [obj for obj in gc.get_objects() if isinstance(obj, cls)]
-
-    def print(self,
-              space_level: int = space_level,
-              item_number: t.Optional[str] = "",
-              subitems: t.Optional[t.List[str]] = None) -> None:
-        """Print information on the module to the terminal.
-
-        Parameters
-        ----------
-        space_level
-            The number of spaces to separate a level
-        item_number
-            An optional character to prepend the printed processing string.
-        subitems
-            Additional items to print about the module as subitems.
-        """
-        cls_name = self.__class__.__name__
-        item_number = str(item_number) + '. ' if item_number else ""
-        subitems = list(subitems) if subitems is not None else []
-
-        # Setup subitems to print
-        module_available = self.get_module() is not None
-        callable_available = self.get_callable() is not None
-        subitems += [click.style("module: ") +
-                     (click.style("AVAILABLE", fg='green') if module_available
-                      else click.style("NOT FOUND", fg='red')) + " " +
-                     click.style("callable: ") +
-                     (click.style("AVAILABLE", fg='green') if callable_available
-                      else click.style("NOT FOUND", fg='red'))]
-
-        # Format the string to print
-        click.echo(" " * space_level +
-                    item_number +
-                   click.style(cls_name, fg=self.print_cls_fg_color) +
-                   f"({self.name})")
-        for subitem in subitems:
-            click.echo(" " * space_level * 2 + subitem)
 
 
 class ProcessorMeta(type):
@@ -132,7 +34,7 @@ class Processor(metaclass=ProcessorMeta):
     optional_params: tuple = ()
 
     #: A list of modules the processor depends on
-    modules = t.Iterable[ModuleType]
+    modules = t.Iterable[Module]
 
     #: Options for printing the processor to the terminal
     print_cls_fg_color = 'cyan'
