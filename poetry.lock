@@ -198,12 +198,12 @@ optional = false
 python-versions = "*"
 
 [extras]
-speedups = ["torch"]
+torch = ["torch"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "fdf467aeb1300fad4f2901e4a77773a7ac5c2db1b265ebb8bced3c74e4807775"
+content-hash = "970b9d0171c1cbd45f365074c21e38d5840e456e5e444c21ad337fc71b945b5d"
 
 [metadata.files]
 atomicwrites = [
