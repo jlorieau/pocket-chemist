@@ -26,6 +26,8 @@ class FFTProcessor(Processor):
             -> t.Callable:
         """Return the best FFT function
 
+        The returned function should match the signature of the numpy fft.
+
         Parameters
         ----------
         module_name
@@ -58,6 +60,8 @@ class FFTProcessor(Processor):
                       modules: t.Optional[t.Iterable[Module]] = None) \
             -> t.Callable:
         """Return the best IFFT function
+
+        The returned function should match the signature of the numpy ifft.
 
         Parameters
         ----------
