@@ -5,6 +5,7 @@ import abc
 import typing as t
 
 import click
+from pocketchemist.utils.list import wraplist
 
 from ..modules import Module
 
@@ -84,6 +85,54 @@ class Processor(metaclass=ProcessorMeta):
             should be placed in the kwargs for subsequent processors
         """
         pass
+
+    @classmethod
+    def get_module_callable(cls,
+                            module_name: t.Optional[str] = None,
+                            modules: t.Optional[t.Iterable[Module]] = None) \
+            -> t.Callable:
+        """Retrieve a module callable from the listing of modules.
+
+        Parameters
+        ----------
+        module_name
+            If specified, search for the callable with the given module name.
+            Otherwise, the first module found will be used.
+        modules
+            The list of modules (:obj:`Module`) to search for the callable.
+            If the list of modules is not specified, the self.modules list
+            will be used.
+
+        Returns
+        -------
+        callable
+            The found module callable (function).
+
+        Raises
+        ------
+        ModuleNotFoundError
+            Raised when a suitable module could not be found.
+        """
+        # Setup the list of modules to search
+        modules = wraplist(modules, default=getattr(cls, 'modules', []))
+
+        # Filter the list, if needed
+        if module_name is not None:
+            modules = [module for module in modules
+                       if module.name == module_name]
+
+        # Search for the callable
+        for module in modules:
+            callable_func = module.get_callable()
+            if callable_func is not None:
+                return callable_func
+
+        # None found! We have a problem and should raise an exception
+        if module_name is not None:
+            msg = f"Module with name '{module_name}' could not be found"
+        else:
+            msg = "A suitable module was not found"
+        raise ModuleNotFoundError(msg)
 
     def print(self, level: int = 0, space_level: int = 0,
               item_number: t.Optional[str] = "") -> None:
