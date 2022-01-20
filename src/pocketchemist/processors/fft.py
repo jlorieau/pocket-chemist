@@ -15,76 +15,64 @@ class FFTProcessor(Processor):
     modules = (
         TorchModule('fft', 'torch.fft', 'fft'),
         Module('fft', 'numpy.fft', 'fft'),
+
         TorchModule('ifft', 'torch.fft', 'ifft'),
         Module('ifft', 'numpy.fft', 'ifft'),
+
+        TorchModule('fftshift', 'torch.fft', 'fftshift'),
+        Module('fftshift', 'numpy.fft', 'fftshift'),
+
+        TorchModule('ifftshift', 'torch.fft', 'ifftshift'),
+        Module('ifftshift', 'numpy.fft', 'ifftshift'),
     )
 
     @classmethod
     def get_fft_func(cls,
-                     module_name: t.Optional[str] = None,
+                     name: t.Optional[str] = None,
                      modules: t.Optional[t.Iterable[Module]] = None) \
             -> t.Callable:
-        """Return the best FFT function
+        """Return the best available fft function (Computes the one dimensional
+        discrete Fourier transform)
 
-        The returned function should match the signature of the numpy fft.
-
-        Parameters
-        ----------
-        module_name
-            If specified, search for the callable with the given module name.
-            Otherwise, the first module found will be used.
-        modules
-            The list of modules (:obj:`Module`) to search for the callable.
-            If the list of modules is not specified, the self.modules list
-            will be used.
-
-        Returns
-        -------
-        callable
-            The found module callable (function).
-
-        Raises
-        ------
-        ModuleNotFoundError
-            Raised when a suitable module could not be found.
+        See :meth:`.Processor.get_module_callable`.
         """
-        # Setup the list of modules to search
-        modules = wraplist(modules, default=getattr(cls, 'modules', []))
-        modules = [module for module in modules if module.category == 'fft']
-        return super().get_module_callable(module_name=module_name,
-                                           modules=modules)
+        return cls.get_module_callable(category='fft', name=name,
+                                       modules=modules)
 
     @classmethod
     def get_ifft_func(cls,
-                      module_name: t.Optional[str] = None,
+                      name: t.Optional[str] = None,
                       modules: t.Optional[t.Iterable[Module]] = None) \
             -> t.Callable:
-        """Return the best IFFT function
+        """Return the best available ifft function (Computes the one dimensional
+        discrete inverse Fourier transform)
 
-        The returned function should match the signature of the numpy ifft.
-
-        Parameters
-        ----------
-        module_name
-            If specified, search for the callable with the given module name.
-            Otherwise, the first module found will be used.
-        modules
-            The list of modules (:obj:`Module`) to search for the callable.
-            If the list of modules is not specified, the self.modules list
-            will be used.
-
-        Returns
-        -------
-        callable
-            The found module callable (function).
-
-        Raises
-        ------
-        ModuleNotFoundError
-            Raised when a suitable module could not be found.
+        See :meth:`.Processor.get_module_callable`.
         """
-        # Setup the list of modules to search
-        modules = wraplist(modules, default=getattr(cls, 'modules', []))
-        modules = [module for module in modules if module.category == 'ifft']
-        return super().get_module_callable(module_name=module_name,
-                                           modules=modules)
+        return cls.get_module_callable(category='ifft', name=name,
+                                       modules=modules)
+
+    @classmethod
+    def get_fftshift_func(cls,
+                     name: t.Optional[str] = None,
+                     modules: t.Optional[t.Iterable[Module]] = None) \
+            -> t.Callable:
+        """Return the best available fftshift function (Reorders n-dimensional
+        FFT data to have negative frequency terms first)
+
+        See :meth:`.Processor.get_module_callable`.
+        """
+        return cls.get_module_callable(category='fftshift', name=name,
+                                       modules=modules)
+
+    @classmethod
+    def get_ifftshift_func(cls,
+                          name: t.Optional[str] = None,
+                          modules: t.Optional[t.Iterable[Module]] = None) \
+            -> t.Callable:
+        """Return the best available ifftshift function (Inverse of fftshift)
+
+        See :meth:`.Processor.get_module_callable`.
+        """
+        return cls.get_module_callable(category='ifftshift', name=name,
+                                       modules=modules)

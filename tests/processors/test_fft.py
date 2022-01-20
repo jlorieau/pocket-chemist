@@ -6,19 +6,29 @@ import pytest
 from pocketchemist.processors.fft import FFTProcessor
 
 
-@pytest.mark.parametrize('module_name',
-                         ('numpy.fft', 'torch.fft', None))
-def test_fftprocessor_get_fft_func(module_name):
-    """Test the FFTProcessor get_fft_func method"""
+@pytest.mark.parametrize('meth_name,name', (
+                         # fft functions]
+                         ('get_fft_func', 'numpy.fft'),
+                         ('get_fft_func', 'torch.fft'),
+                         ('get_fft_func', None),
+                         # ifft functions
+                         ('get_ifft_func', 'numpy.fft'),
+                         ('get_ifft_func', 'torch.fft'),
+                         ('get_ifft_func', None),
+                         # fftshift functions
+                         ('get_fftshift_func', 'numpy.fft'),
+                         ('get_fftshift_func', 'torch.fft'),
+                         ('get_fftshift_func', None),
+                         # ifftshift functions
+                         ('get_ifftshift_func', 'numpy.fft'),
+                         ('get_ifftshift_func', 'torch.fft'),
+                         ('get_ifftshift_func', None),
+                         ))
+def test_fftprocessor_get_x_func(meth_name, name):
+    """Test the FFTProcessor get_x_func methods"""
+    # Get the method
+    meth = getattr(FFTProcessor, meth_name)
+
     # This method will raise a ModuleNotFoundError if the module could not
     # be found
-    FFTProcessor.get_fft_func(module_name=module_name)
-
-
-@pytest.mark.parametrize('module_name',
-                         ('numpy.fft', 'torch.fft', None))
-def test_fftprocessor_get_ifft_func(module_name):
-    """Test the FFTProcessor get_ifft_func method"""
-    # This method will raise a ModuleNotFoundError if the module could not
-    # be found
-    FFTProcessor.get_ifft_func(module_name=module_name)
+    meth(name=name)

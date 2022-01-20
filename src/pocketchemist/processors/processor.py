@@ -88,14 +88,17 @@ class Processor(metaclass=ProcessorMeta):
 
     @classmethod
     def get_module_callable(cls,
-                            module_name: t.Optional[str] = None,
+                            category: t.Optional[str] = None,
+                            name: t.Optional[str] = None,
                             modules: t.Optional[t.Iterable[Module]] = None) \
             -> t.Callable:
-        """Retrieve a module callable from the listing of modules.
+        """Retrieve the first (best) module callable
 
         Parameters
         ----------
-        module_name
+        category
+            If specified, filter modules by the given category.
+        name
             If specified, search for the callable with the given module name.
             Otherwise, the first module found will be used.
         modules
@@ -117,9 +120,11 @@ class Processor(metaclass=ProcessorMeta):
         modules = wraplist(modules, default=getattr(cls, 'modules', []))
 
         # Filter the list, if needed
-        if module_name is not None:
+        if category is not None:
             modules = [module for module in modules
-                       if module.name == module_name]
+                       if module.category == category]
+        if name is not None:
+            modules = [module for module in modules if module.name == name]
 
         # Search for the callable
         for module in modules:
@@ -128,8 +133,8 @@ class Processor(metaclass=ProcessorMeta):
                 return callable_func
 
         # None found! We have a problem and should raise an exception
-        if module_name is not None:
-            msg = f"Module with name '{module_name}' could not be found"
+        if name is not None:
+            msg = f"Module with name '{name}' could not be found"
         else:
             msg = "A suitable module was not found"
         raise ModuleNotFoundError(msg)
