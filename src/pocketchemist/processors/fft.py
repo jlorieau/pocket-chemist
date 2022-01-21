@@ -50,7 +50,7 @@ class FFTWrapperFunc:
 
 
 class NumpyFFTFunc(FFTWrapperFunc):
-    """The numpy implementation of the FFT func"""
+    """The numpy implementation of the FFT wrapper function"""
 
     def __call__(self, data, n=None, axis=-1, norm=None, fft_type='fft',
                  center='fftshift'):
@@ -71,7 +71,7 @@ class NumpyFFTFunc(FFTWrapperFunc):
 
 
 class TorchFFTFunc(FFTWrapperFunc):
-    """The Torch implementation of the FFT func"""
+    """The Torch implementation of the FFT wrapper function"""
 
     from_numpy_module: Module
 
