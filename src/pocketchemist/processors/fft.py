@@ -67,7 +67,7 @@ class NumpyFFTFunc(FFTWrapperFunc):
         else:
             fftshift_func = None
 
-        return fftshift_func(result) if fftshift_func is not None else None
+        return fftshift_func(result) if fftshift_func is not None else result
 
 
 class TorchFFTFunc(FFTWrapperFunc):
@@ -77,37 +77,33 @@ class TorchFFTFunc(FFTWrapperFunc):
 
     def __call__(self, data, n=None, axis=-1, norm=None, fft_type='fft',
                  center='fftshift'):
-        # Retrieve from_numpy from the root torch module
-        from_numpy = self.from_numpy_module.get_callable()
+        # Retrieve the conversion function for numpy arrays
+        from_numpy = getattr(self.module.get_root_module(), 'from_numpy')
 
-        # Determine the FFT function
-        if fft_type == 'fft':
-            fft_func = self.fft_module.get_callable()
-        elif fft_type == 'ifft':
-            fft_func = self.ifft_module.get_callable()
-        else:
-            raise NotImplementedError
-
-        # Convert the data to a tensor and conduct the FFT
+        # Convert the numpy ndarray to a tensor
         tensor = from_numpy(data)
-        result = fft_func(input=data, n=n, dim=axis, norm=norm)
+
+        # Retrieve the 'fft' or 'ifft' function
+        fft_func = self.module.get_callable(fft_type)
+
+        # Perform the fft
+        result = fft_func(input=tensor, n=n, dim=axis, norm=norm)
 
         # Center the spectrum if needed
-        if center == 'fftshift':
-            fftshift_func = self.fftshift_module.get_callable()
-        elif center == 'ifftshift':
-            fftshift_func = self.ifftshift_module.get_callable()
+        if isinstance(center, str):
+            fftshift_func = self.module.get_callable(center)
         else:
             fftshift_func = None
 
-        result = fftshift_func(result) if fftshift_func is not None else result
-        return result.cpu().detach().numpy()
+        return (fftshift_func(result).cpu().detach().numpy()
+                if fftshift_func is not None else
+                result.cpu().detach().numpy())
 
 
 class FFTProcessor(Processor):
     """A processor with access to FFT functionality."""
 
     modules = (
-        # TorchModule('fft', 'torch.fft', 'fft'),
+        TorchModule('fft', 'torch.fft', TorchFFTFunc),
         Module('fft', 'numpy.fft', NumpyFFTFunc),
     )

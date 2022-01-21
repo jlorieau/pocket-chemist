@@ -13,7 +13,7 @@ from pocketchemist.processors.fft import FFTProcessor, FFTWrapperFunc
 @pytest.fixture
 def module_names():
     """A listing of module names to test"""
-    return 'numpy.fft', None  # None is the default
+    return 'numpy.fft', 'torch.fft', None  # None is the default
 
 
 @pytest.fixture
@@ -33,11 +33,6 @@ def data2d():
     dt = t[1] - t[0]  # dwell time, delta t, in sec
     df = t[-1]**-1  # spectral resolution, delta f, in Hz
     sw = dt**-1  # spectral width, in Hz
-
-    # Determine the index position for the FT peak maximum, accounting for
-    # centering of the zero-frequencies
-    maxF1 = int((v1 + sw/2.)/df)
-    maxF2 = int((v2 + sw/2.)/df)
 
     # Return the 2d array from the product of each dimension
     data2d = np.dot(fid1[:, None], fid2[None, :])
@@ -110,5 +105,9 @@ def test_fftprocessor_multiprocessing_pool(module_names, data2d):
                 ftdata1d = ftdata[0, :]
                 assert ftdata1d.shape == (128,)
 
-                maxindex = np.argmax(ftdata1d)
+                maxindex = np.argmax(ftdata1d)  # Find the maximum pt position
+
+                # Verify the position of the peak
+                # The peaks is at -20Hz, -20 Hz from the center (64pts),
+                # with 1Hz per point, 64-20 = 44
                 assert maxindex == 44
