@@ -24,8 +24,9 @@ class Module:
     #: The name of the module
     name: str
 
-    #: The name of the imported function
-    callable_name: str
+    #: The name of the imported function (str), a wrapper class that needs
+    #: to be instantiated or directly a callable
+    callable: t.Union[str, t.Callable]
 
     #: Options for printing the module to the terminal
     print_cls_fg_color = 'cyan'
@@ -73,8 +74,20 @@ class Module:
         except ImportError:
             return None
 
-    def get_callable(self) -> t.Union[t.Callable, None]:
+    def get_callable(self,
+                     callable_obj: t.Optional[t.Union[str, t.Callable,
+                                                      type]] = None) \
+            -> t.Union[t.Callable, None]:
         """Retrieve the module function.
+
+        Parameters
+        ----------
+        callable_obj
+            Optional callable object that is used instead of self.callable.
+            This can be a string for a callable (function) in the module,
+            a callable directly, like a function or class, or class to generate
+            a callable, which takes a single 'module' parameter, which is this
+            module.
 
         Returns
         -------
@@ -82,9 +95,24 @@ class Module:
             The module's function or callable class, if available.
             None if the function could not be found.
         """
+        # Setup the arguments
+        callable_obj = (callable_obj if callable_obj is not None else
+                        self.callable)
+
         # See if the module is available, and retrieve the function if it is
         module = self.get_module()
-        return getattr(module, self.callable_name, None)
+        if isinstance(callable_obj, str):
+            # The callable is a string, which should be retrieved from the
+            # module
+            return getattr(module, callable_obj, None)
+        elif type(callable_obj) == type:
+            # The callable is a wrapper class that should be instantiated
+            # with this module
+            return callable_obj(self)
+        else:
+            # Otherwise return the callable itself
+            assert callable(callable_obj)
+            return callable_obj
 
     @classmethod
     def list_instances(cls):

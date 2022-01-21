@@ -109,7 +109,7 @@ class Processor(metaclass=ProcessorMeta):
         Returns
         -------
         callable
-            The found module callable (function).
+            The found module and its callable (function).
 
         Raises
         ------
