@@ -53,7 +53,7 @@ def data2d(v1: float = 10., v2: float = -20., lb: float = 5.0,
     return data2d
 
 
-def check_ftdata2d(data2d, dim=2, center=True, fft_type='fft',
+def check_ftdata2d(data2d, dim=2, center='fftshift', fft_type='fft',
                    v1: float = 10., v2: float = -20.,
                    tmax: float = 1.0, npts: int = 128):
     """Check FT data2d"""
@@ -78,7 +78,7 @@ def check_ftdata2d(data2d, dim=2, center=True, fft_type='fft',
         # Verify the position of the peak
         maxindex = np.argmax(data1d)  # Find the maximum pt position
 
-        if center:
+        if center == 'fftshift':
             correct_index = int((sw/(2. * df)) + (v2 / df))
         else:
             correct_index = max(npts + int(v2 / df), int(v2 / df))
@@ -138,8 +138,8 @@ def test_fftprocessor_fftwrapperfunc(module_name, data2d):
     check_ftdata2d(ftdata2d)
 
     # 2. Try an fft without centering
-    ftdata2d = fft_func(data2d, center=None)
-    check_ftdata2d(ftdata2d, center=False)
+    ftdata2d = fft_func(data2d, center='noshift')
+    check_ftdata2d(ftdata2d, center='noshift')
 
     # 3. Try an ifft with centering
     ftdata2d = fft_func(data2d, fft_type='ifft')

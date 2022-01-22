@@ -2,6 +2,8 @@
 import typing as t
 from dataclasses import dataclass
 
+import numpy as np
+
 from .processor import Processor
 from ..modules import Module, TorchModule
 
@@ -14,8 +16,17 @@ class FFTWrapperFunc:
 
     module: Module
 
-    def __call__(self, data, n=None, axis=-1, norm=None, fft_type='fft',
-                 center='fftshift'):
+    # Function parameter defaults that can be modified
+    fft_type: str = 'fft'
+    center: t.Optional[str] = 'fftshift'
+
+    def __call__(self,
+                 data: np.ndarray,
+                 n: t.Optional[int] = None,
+                 axis: int = -1,
+                 norm: t.Optional[str] = None,
+                 fft_type: t.Optional[str] = None,
+                 center: t.Optional[str] = None):
         """The fft wrapper function.
 
         Parameters
@@ -37,7 +48,7 @@ class FFTWrapperFunc:
         center
             (Optional) centering of frequencies. Options include:
 
-            - None. No centering is applied
+            - 'noshift'. No centering is applied
             - 'fftshift'. Use the fftshift function
             - 'ifftshift'. Use the ifftshift function
 
@@ -52,8 +63,12 @@ class FFTWrapperFunc:
 class NumpyFFTFunc(FFTWrapperFunc):
     """The numpy implementation of the FFT wrapper function"""
 
-    def __call__(self, data, n=None, axis=-1, norm=None, fft_type='fft',
-                 center='fftshift'):
+    def __call__(self, data, n=None, axis=-1, norm=None, fft_type=None,
+                 center=None):
+        # Setup arguments
+        fft_type = fft_type if fft_type is not None else self.fft_type
+        center = center if center is not None else self.center
+
         # Retrieve the 'fft' or 'ifft' function
         fft_func = self.module.get_callable(fft_type)
 
@@ -62,10 +77,10 @@ class NumpyFFTFunc(FFTWrapperFunc):
         result = result.astype(data.dtype)
 
         # Center the spectrum if needed
-        if isinstance(center, str):
-            fftshift_func = self.module.get_callable(center)
-        else:
+        if center == 'noshift':
             fftshift_func = None
+        else:
+            fftshift_func = self.module.get_callable(center)
 
         return fftshift_func(result) if fftshift_func is not None else result
 
@@ -90,10 +105,10 @@ class TorchFFTFunc(FFTWrapperFunc):
         result = fft_func(input=tensor, n=n, dim=axis, norm=norm)
 
         # Center the spectrum if needed
-        if isinstance(center, str):
-            fftshift_func = self.module.get_callable(center)
-        else:
+        if center == 'noshift':
             fftshift_func = None
+        else:
+            fftshift_func = self.module.get_callable(center)
 
         return (fftshift_func(result).cpu().detach().numpy()
                 if fftshift_func is not None else
