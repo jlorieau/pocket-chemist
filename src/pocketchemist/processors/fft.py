@@ -7,7 +7,7 @@ import numpy as np
 from .processor import Processor
 from ..modules import Module, TorchModule
 
-__all__ = ('FFTProcessor',)
+__all__ = ('FFTProcessor', 'FFTWrapperFunc')
 
 
 @dataclass
