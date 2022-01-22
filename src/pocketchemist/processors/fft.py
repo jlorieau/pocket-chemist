@@ -90,8 +90,12 @@ class TorchFFTFunc(FFTWrapperFunc):
 
     from_numpy_module: Module
 
-    def __call__(self, data, n=None, axis=-1, norm=None, fft_type='fft',
-                 center='fftshift'):
+    def __call__(self, data, n=None, axis=-1, norm=None, fft_type=None,
+                 center=None):
+        # Setup arguments
+        fft_type = fft_type if fft_type is not None else self.fft_type
+        center = center if center is not None else self.center
+
         # Retrieve the conversion function for numpy arrays
         from_numpy = getattr(self.module.get_root_module(), 'from_numpy')
 
