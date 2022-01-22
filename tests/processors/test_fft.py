@@ -7,7 +7,8 @@ from multiprocessing import Pool
 import pytest
 import numpy as np
 
-from pocketchemist.processors.fft import FFTProcessor, FFTWrapperFunc
+from pocketchemist.processors.fft import (FFTProcessor, FFTWrapperFunc,
+                                          FFTType, FFTShift)
 
 # Create a list of modules to test
 module_names = ('numpy.fft', 'torch.fft', None)  # None is the default
@@ -53,7 +54,9 @@ def data2d(v1: float = 10., v2: float = -20., lb: float = 5.0,
     return data2d
 
 
-def check_ftdata2d(data2d, dim=2, center='fftshift', fft_type='fft',
+def check_ftdata2d(data2d, dim=2,
+                   fft_type=FFTType.FFT,
+                   fft_shift=FFTShift.FFTSHIFT,
                    v1: float = 10., v2: float = -20.,
                    tmax: float = 1.0, npts: int = 128):
     """Check FT data2d"""
@@ -62,7 +65,7 @@ def check_ftdata2d(data2d, dim=2, center='fftshift', fft_type='fft',
     assert data2d.shape == (npts, npts)
 
     # Fix the frequencies in relation to the type of fft
-    if fft_type == 'ifft':
+    if fft_type is FFTType.IFFT:
         v1 *= -1.0
         v2 *= -1.0
 
@@ -78,7 +81,7 @@ def check_ftdata2d(data2d, dim=2, center='fftshift', fft_type='fft',
         # Verify the position of the peak
         maxindex = np.argmax(data1d)  # Find the maximum pt position
 
-        if center == 'fftshift':
+        if fft_shift is FFTShift.FFTSHIFT:
             correct_index = int((sw/(2. * df)) + (v2 / df))
         else:
             correct_index = max(npts + int(v2 / df), int(v2 / df))
@@ -138,12 +141,12 @@ def test_fftprocessor_fftwrapperfunc(module_name, data2d):
     check_ftdata2d(ftdata2d)
 
     # 2. Try an fft without centering
-    ftdata2d = fft_func(data2d, center='noshift')
-    check_ftdata2d(ftdata2d, center='noshift')
+    ftdata2d = fft_func(data2d, fft_shift=FFTShift.NONE)
+    check_ftdata2d(ftdata2d, fft_shift=FFTShift.NONE)
 
     # 3. Try an ifft with centering
-    ftdata2d = fft_func(data2d, fft_type='ifft')
-    check_ftdata2d(ftdata2d, fft_type='ifft')
+    ftdata2d = fft_func(data2d, fft_type=FFTType.IFFT)
+    check_ftdata2d(ftdata2d, fft_type=FFTType.IFFT)
 
 
 @pytest.mark.parametrize("module_name", module_names)
