@@ -6,6 +6,8 @@ import coloredlogs
 
 from .setup import setup
 
+logger = logging.getLogger('pocketchemist.cli.cli')
+
 
 @click.group()
 @click.option('--debug', is_flag=True, default=False,
@@ -16,7 +18,7 @@ def main(debug):
     if debug:
         coloredlogs.install(level='DEBUG')
         logging.basicConfig()
-        logging.debug("Debuggin mode turned ON")
+        logger.debug("Debugging mode turned ON")
     else:
         coloredlogs.install(level='WARNING')
 
