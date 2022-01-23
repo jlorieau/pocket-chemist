@@ -28,6 +28,7 @@ class FFTShift(Enum):
     NONE = None  # Do not apply frquency shift
 
 
+# Wrapper Class Functions
 @dataclass
 class FFTWrapperFunc:
     """The fft wrapper callable object"""
