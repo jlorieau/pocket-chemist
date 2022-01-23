@@ -1,12 +1,10 @@
 from importlib.metadata import entry_points  # python >=3.8
-import logging
+import sys
 
 import click
-import coloredlogs
+from loguru import logger
 
 from .setup import setup
-
-logger = logging.getLogger('pocketchemist.cli.cli')
 
 
 @click.group()
@@ -14,13 +12,15 @@ logger = logging.getLogger('pocketchemist.cli.cli')
               help="Display debugging information")
 def main(debug):
     """A pocket chemist to analyze spectra and molecules"""
-    # Setup logging
+    # Remove default logger
+    logger.remove()
+
+    # Configure logger and set default level
     if debug:
-        coloredlogs.install(level='DEBUG')
-        logging.basicConfig()
-        logger.debug("Debugging mode turned ON")
+        logger.add(sys.stderr, level="DEBUG", enqueue=True)
+        logger.debug("Debug mode ON")
     else:
-        coloredlogs.install(level='WARNING')
+        logger.add(sys.stderr, level="WARNING", enqueue=True)
 
 
 # Add subcommands
@@ -33,6 +33,6 @@ for entrypoint in entry_points().get('pocketchemist', []):
         try:
             main.add_command(entrypoint.load())
         except ModuleNotFoundError:
-            logging.warning(f"The module '{entrypoint.value}' could not be "
-                            f"found.")
+            logger.warning(f"The module '{entrypoint.value}' could not be "
+                           f"found.")
 
