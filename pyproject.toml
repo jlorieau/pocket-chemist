@@ -16,7 +16,7 @@ torch = {version = "^1.10", optional = true}
 loguru = "^0.5.3"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
+pytest = "^6.2"
 
 [tool.poetry.extras]
 torch = ["torch"]
