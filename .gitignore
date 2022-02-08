@@ -118,6 +118,9 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# Airspeed Velocity
+.asv
+
 # mypy
 .mypy_cache/
 .dmypy.json

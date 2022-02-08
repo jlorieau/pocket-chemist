@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pocketchemist"
-version = "0.1.0"
+version = "0.1.1"
 description = "Software for the analysis of spectra and molecules"
 authors = ["J Lorieau"]
 
