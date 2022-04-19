@@ -5,9 +5,7 @@ from inspect import isabstract
 from itertools import groupby
 
 import click
-import yaml
 
-from ..config import config as config_dict
 from ..processors import Processor
 from ..modules import Module
 from ..utils.classes import all_subclasses
@@ -17,12 +15,6 @@ from ..utils.classes import all_subclasses
 def setup():
     """Print information on the current setup"""
     pass
-
-
-@setup.command()
-def config():
-    """Display and save the current configuration settings"""
-    click.echo(yaml.safe_dump(config_dict))
 
 
 @setup.command()
