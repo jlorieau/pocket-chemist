@@ -1,0 +1,11 @@
+version: '3'
+
+tasks:
+  install:
+    desc: "Install pocketchemist"
+    cmds:
+      - pip install .
+  develop:
+    desc: "Install pocketchemist in (editable) developer mose"
+    cmds:
+      - pip install --editable .
