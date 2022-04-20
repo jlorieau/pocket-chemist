@@ -1,5 +1,8 @@
-from . import cli, processors, hookimpls, utils
+import sys
 
-__all__ = ('cli', 'processors', 'hookimpls', 'utils')
+if sys.version_info >= (3, 8):
+    from importlib import metadata
+else:
+    import importlib_metadata as metadata
 
-__version__ = '0.1.10'
+__version__ = metadata.version('pocketchemist')
