@@ -1,10 +1,9 @@
 """
 Specifications for plugin hooks
 """
-import pluggy
 import click
 
-hookspec = pluggy.HookspecMarker("pocketchemist")
+from ..hookspecs import hookspec
 
 
 @hookspec
