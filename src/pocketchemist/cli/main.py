@@ -16,8 +16,8 @@ def get_plugin_manager():
     return pm
 
 
-def main():
-    """The CLI entrypoint"""
+def get_root_command():
+    """Generate the root CLI command"""
     pm = get_plugin_manager()
 
     @click.group()
@@ -38,5 +38,11 @@ def main():
     # Add subcommands with plugins
     results = pm.hook.add_command(root_command=root_command)
 
+    return root_command
+
+
+def main():
+    """The CLI entrypoint"""
     # Run the root command
+    root_command = get_root_command()
     root_command()
