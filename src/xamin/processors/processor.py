@@ -5,7 +5,7 @@ import abc
 import typing as t
 
 import click
-from pocketchemist.utils.list import wraplist
+from xamin.utils.list import wraplist
 
 from ..modules import Module
 

@@ -9,9 +9,9 @@ from . import hookspecs, setup
 
 def get_plugin_manager():
     """Retrieve and setup the plugin manager"""
-    pm = pluggy.PluginManager("pocketchemist")
+    pm = pluggy.PluginManager("xamin")
     pm.add_hookspecs(hookspecs)  # Load this package's hookspecs
-    pm.load_setuptools_entrypoints("pocketchemist")  # Load plugin hookspecs
+    pm.load_setuptools_entrypoints("xamin")  # Load plugin hookspecs
     pm.register(setup)
     return pm
 
@@ -24,7 +24,7 @@ def get_root_command():
     @click.option('--debug', is_flag=True, default=False,
                   help="Display debugging information")
     def root_command(debug):
-        """A pocket chemist to analyze spectra and molecules"""
+        """Xamin (examine) spectra and molecules"""
         # Remove default logger
         logger.remove()
 
