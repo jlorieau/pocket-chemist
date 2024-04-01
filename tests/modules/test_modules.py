@@ -5,7 +5,7 @@ import pickle
 from multiprocessing import Pool
 from dataclasses import dataclass
 
-from pocketchemist.modules import Module
+from xamin.modules import Module
 
 
 def dummy_func():

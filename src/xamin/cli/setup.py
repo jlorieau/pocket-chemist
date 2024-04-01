@@ -6,13 +6,13 @@ from itertools import groupby
 
 import click
 
-from ..hookimpls import pocketchemist
+from ..hookimpls import xamin
 from ..processors import Processor
 from ..modules import Module
 from ..utils.classes import all_subclasses
 
 
-@pocketchemist
+@xamin
 def add_command(root_command):
     """Plugin hook to add the setup cli sub-command"""
     root_command.add_command(setup)
