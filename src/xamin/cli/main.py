@@ -24,7 +24,7 @@ def get_root_command():
     @click.option('--debug', is_flag=True, default=False,
                   help="Display debugging information")
     def root_command(debug):
-        """Xamin (examine) spectra and molecules"""
+        """(e)Xamin spectra and molecules"""
         # Remove default logger
         logger.remove()
 
