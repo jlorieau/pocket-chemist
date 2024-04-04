@@ -94,6 +94,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('xamin')
         self.show()
 
+        # Add tab
+        self.tabs.addTab(QTextEdit(), 'Text edit')
+
     def _create_actions(self):
         """Create actions for menubar and toolbars"""
         # Exit application action
@@ -130,17 +133,13 @@ class MainWindow(QMainWindow):
         font = self.get_font('toolbar')
         self.toolbar.setFont(font)
 
-
     def _create_central_widget(self):
         """Create the workspace central widget with project files list and work views"""
         self.central_widget = QWidget()
 
         # Create sub-widgets
         self._create_project_list()
-        self.tabs = QTabWidget()
-
-        # Configure the sub-widgets
-        self.tabs.setFont(self.get_font('tabs'))
+        self._create_tabs()
 
         # Format the widgets in the workspace
         hlayout = QHBoxLayout()
@@ -150,7 +149,7 @@ class MainWindow(QMainWindow):
         self.central_widget.setLayout(hlayout)
 
     def _create_project_list(self):
-        """Create the project listing"""
+        """Create the project listing widget"""
         self.project_list = QListWidget()
 
         # Configure project list settings
@@ -162,6 +161,14 @@ class MainWindow(QMainWindow):
 
         # Add project list items
         self.project_list.addItem('Item 1')
+
+    def _create_tabs(self):
+        """Create the tabs widget"""
+        self.tabs = QTabWidget()
+
+        # Configure the tabs
+        self.tabs.setFont(self.get_font('tabs'))
+        self.tabs.setTabsClosable(True)
 
 
     @staticmethod
