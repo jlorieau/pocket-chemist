@@ -6,7 +6,7 @@ import typing as t
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QMainWindow, QStatusBar, QVBoxLayout, QHBoxLayout, QWidget,
                              QMenuBar, QMenu, QTextEdit, QToolBar, QListWidget, 
-                             QTabWidget)
+                             QTabWidget, QApplication)
 from PyQt6.QtGui import QIcon, QAction, QFont
 from thatway import Setting
 
@@ -16,18 +16,28 @@ class MainWindow(QMainWindow):
     """The main (root) window"""
 
     #: Main window settings
+    window_size = Setting((
+        (2560, 1440),
+        (1920, 1080),
+        (1366, 768),
+        (1024, 768)),
+        desc="Window size",
+    )
     window_width = Setting(800, desc="Default window width")
     window_height = Setting(600, desc="Default window height")
     
     # Default font settings
     font_family = Setting('Helvetica', desc='Default font')
-    font_size = Setting(14, desc="Default font size")
+    font_size = Setting(15, desc="Default font size")
 
     #: Default keyboard shortcuts for actions
     shortcut_exit = Setting('Ctrl+Q', desc="Exit shortcut")
 
-    #: Default display options
-    show_toolbar = Setting(True, desc="Display toolbar")
+    # Menubar options
+    menubar_native = Setting(True, desc="Use native OS for menubar display")
+
+    # Toolbar options
+    toolbar_visible = Setting(True, desc="Display toolbar")
 
     #: Default project list options
     project_list_width = Setting(10, desc="Default width (chars) for project list")
@@ -71,14 +81,16 @@ class MainWindow(QMainWindow):
         self._create_central_widget()
         self._create_actions()
         self._create_menubar()
-        if self.show_toolbar:
+        if self.toolbar_visible:
             self._create_toolbar()
 
         # Configure the central widget
         self.setCentralWidget(self.central_widget)
 
         # Configure the window
-        self.resize(self.window_width, self.window_height)
+        screen_size = self.get_screen_size()
+        max_sizes = [i for i in self.window_size if i < screen_size]
+        self.resize(*max_sizes[0])
         self.setWindowTitle('xamin')
         self.show()
 
@@ -98,7 +110,7 @@ class MainWindow(QMainWindow):
 
         # Configure the menubar
         self.menubar.setFont(self.get_font('menubar'))
-        self.menubar.setNativeMenuBar(False)  # macOS
+        self.menubar.setNativeMenuBar(self.menubar_native)  # macOS
 
         # Populate menubar
         fileMenu = self.menubar.addMenu('&File')
@@ -106,8 +118,12 @@ class MainWindow(QMainWindow):
 
     def _create_toolbar(self):
         """Create toolbar for the main window"""
-        # Populate toolbar
-        self.toolbar = self.addToolBar('E&xit')
+        # Create the toolbar
+        self.toolbar = QToolBar('toobar')
+        self.toolbar.setOrientation(Qt.Orientation.Vertical)
+        self.addToolBar(Qt.ToolBarArea.RightToolBarArea, self.toolbar)
+        
+        # Add toolbar actions
         self.toolbar.addAction(self.actions['exit'])
 
         # Configure toolbar
@@ -147,9 +163,16 @@ class MainWindow(QMainWindow):
         # Add project list items
         self.project_list.addItem('Item 1')
 
-    def get_font(self, *names):
-        """Get the font given by the given names, giving higher precendence to 
+
+    @staticmethod
+    def get_screen_size() -> t.Tuple[int, int]:
+        """The size (width, height) of the current screen in pixels"""
+        screen = QApplication.primaryScreen()
+        size = screen.size()
+        return size.width(), size.height()
+
+    def get_font(self, *names) -> QFont:
+        """The font given by the given names, giving higher precendence to 
         earlier names."""
         match_names = [name for name in names if name in self.fonts]
         return self.fonts[match_names[0]] if match_names else self.fonts['default']
-        
