@@ -15,8 +15,8 @@ class MainWindow(QMainWindow):
     """The main (root) window"""
 
     #: Main window settings
-    window_width = Setting(400, desc="Default window width")
-    window_height = Setting(400, desc="Default window height")
+    window_width = Setting(800, desc="Default window width")
+    window_height = Setting(600, desc="Default window height")
 
     #: Central widget of the main window
     central_widget: QWidget
@@ -49,12 +49,13 @@ class MainWindow(QMainWindow):
         textEdit = QTextEdit()
         self.setCentralWidget(textEdit)
 
+        # Create core widgets
         self._create_actions()
         self._create_menubar()
         self._create_toolbar()
 
-        self.setGeometry(300, 300, 350, 250)
-        self.setWindowTitle('Main window')
+        self.resize(self.window_width, self.window_height)
+        self.setWindowTitle('xamin')
         self.show()
 
     def _create_actions(self):
@@ -81,6 +82,3 @@ class MainWindow(QMainWindow):
         # Populate toolbar
         self.toolbar = self.addToolBar('E&xit')
         self.toolbar.addAction(self.actions['exit'])
-
-
-
