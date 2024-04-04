@@ -5,8 +5,9 @@ import typing as t
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QMainWindow, QStatusBar, QVBoxLayout, QHBoxLayout, QWidget,
-                             QMenuBar, QMenu, QTextEdit, QToolBar)
-from PyQt6.QtGui import QIcon, QAction
+                             QMenuBar, QMenu, QTextEdit, QToolBar, QListWidget, 
+                             QTabWidget)
+from PyQt6.QtGui import QIcon, QAction, QFont
 from thatway import Setting
 
 __all__ = ('MainWindow',)
@@ -17,6 +18,19 @@ class MainWindow(QMainWindow):
     #: Main window settings
     window_width = Setting(800, desc="Default window width")
     window_height = Setting(600, desc="Default window height")
+    
+    # Default font settings
+    font_family = Setting('Helvetica', desc='Default font')
+    font_size = Setting(14, desc="Default font size")
+
+    #: Default keyboard shortcuts for actions
+    shortcut_exit = Setting('Ctrl+Q', desc="Exit shortcut")
+
+    #: Default display options
+    show_toolbar = Setting(True, desc="Display toolbar")
+
+    #: Default project list options
+    project_list_width = Setting(10, desc="Default width (chars) for project list")
 
     #: Central widget of the main window
     central_widget: QWidget
@@ -24,36 +38,46 @@ class MainWindow(QMainWindow):
     #: Actions for menu and tool bars
     actions: t.Dict[str, QAction]
 
-    #: Default keyboard shortcuts for actions
-    shortcut_exit = Setting('Ctrl+Q', desc="Exit shortcut")
+    #: Fonts
+    fonts: t.Dict[str, QFont]
 
-    #: Menu bar for the main window
+    #: Menu bar widget for the main window
     menubar: QMenuBar
 
-    #: Tool bar for the main window
+    #: Tool bar widget for the main window
     toolbar: QToolBar
 
-    #: Status bar for the main window
+    #: Status bar widget for the main window
     statusbar: QStatusBar
+
+    #: Project listing widget for the main window
+    project_list: QListWidget
+
+    #: Tab workspace view widget
+    tabs: QTabWidget
 
     def __init__(self):
         super().__init__()
 
         # Populate default mutables
         self.actions = dict()
+        self.fonts = {'default': QFont(self.font_family, self.font_size)}
 
         # Configure the main window
         self.setWindowTitle("xamin")
         self.resize(self.window_width, self.window_height)
 
-        textEdit = QTextEdit()
-        self.setCentralWidget(textEdit)
-
         # Create core widgets
+        self._create_central_widget()
         self._create_actions()
         self._create_menubar()
-        self._create_toolbar()
+        if self.show_toolbar:
+            self._create_toolbar()
 
+        # Configure the central widget
+        self.setCentralWidget(self.central_widget)
+
+        # Configure the window
         self.resize(self.window_width, self.window_height)
         self.setWindowTitle('xamin')
         self.show()
@@ -71,6 +95,9 @@ class MainWindow(QMainWindow):
         """Create menubar for the main window"""
         # Create the menubar
         self.menubar = self.menuBar()
+
+        # Configure the menubar
+        self.menubar.setFont(self.get_font('menubar'))
         self.menubar.setNativeMenuBar(False)  # macOS
 
         # Populate menubar
@@ -82,3 +109,47 @@ class MainWindow(QMainWindow):
         # Populate toolbar
         self.toolbar = self.addToolBar('E&xit')
         self.toolbar.addAction(self.actions['exit'])
+
+        # Configure toolbar
+        font = self.get_font('toolbar')
+        self.toolbar.setFont(font)
+
+
+    def _create_central_widget(self):
+        """Create the workspace central widget with project files list and work views"""
+        self.central_widget = QWidget()
+
+        # Create sub-widgets
+        self._create_project_list()
+        self.tabs = QTabWidget()
+
+        # Configure the sub-widgets
+        self.tabs.setFont(self.get_font('tabs'))
+
+        # Format the widgets in the workspace
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(self.project_list)
+        hlayout.addWidget(self.tabs)
+
+        self.central_widget.setLayout(hlayout)
+
+    def _create_project_list(self):
+        """Create the project listing"""
+        self.project_list = QListWidget()
+
+        # Configure project list settings
+        font = self.get_font('project_list')
+        self.project_list.setFont(font)
+
+        width = font.pointSize() * self.project_list_width
+        self.project_list.setFixedWidth(width)
+
+        # Add project list items
+        self.project_list.addItem('Item 1')
+
+    def get_font(self, *names):
+        """Get the font given by the given names, giving higher precendence to 
+        earlier names."""
+        match_names = [name for name in names if name in self.fonts]
+        return self.fonts[match_names[0]] if match_names else self.fonts['default']
+        
