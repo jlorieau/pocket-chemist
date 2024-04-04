@@ -4,7 +4,7 @@ import click
 import pluggy
 from loguru import logger
 
-from . import hookspecs, setup
+from . import hookspecs, setup, gui
 
 
 def get_plugin_manager():
@@ -13,6 +13,7 @@ def get_plugin_manager():
     pm.add_hookspecs(hookspecs)  # Load this package's hookspecs
     pm.load_setuptools_entrypoints("xamin")  # Load plugin hookspecs
     pm.register(setup)
+    pm.register(gui)
     return pm
 
 
