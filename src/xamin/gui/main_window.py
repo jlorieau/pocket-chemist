@@ -4,6 +4,7 @@ The main (root) window
 
 import typing as t
 from pathlib import Path
+from platform import system
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -23,13 +24,22 @@ from thatway import Setting
 
 __all__ = ("MainWindow",)
 
+ctrl = "Cmd" if system() == "Darwin" else "Ctrl"
+
+
+class Shortcuts:
+    """Application keyboard shortcuts"""
+
+    open = Setting(f"{ctrl}+o", desc="Open document")
+    quit = Setting(f"{ctrl}+x", desc="Exit application")
+
 
 class MainWindow(QMainWindow):
     """The main (root) window"""
 
     #: Main window settings
     window_size = Setting(
-        ((2560, 1440), (1920, 1080), (1366, 768), (1024, 768)),
+        ((3840, 2160), (2560, 1440), (1920, 1080), (1366, 768), (1024, 768)),
         desc="Window size",
     )
     window_width = Setting(800, desc="Default window width")
@@ -38,10 +48,6 @@ class MainWindow(QMainWindow):
     # Default font settings
     font_family = Setting("Helvetica", desc="Default font")
     font_size = Setting(15, desc="Default font size")
-
-    #: Default keyboard shortcuts for actions
-    shortcut_open = Setting("Ctrl+O", desc="Open shortcut")
-    shortcut_exit = Setting("Ctrl+Q", desc="Exit shortcut")
 
     # Menubar options
     menubar_native = Setting(True, desc="Use native OS for menubar display")
@@ -118,7 +124,7 @@ class MainWindow(QMainWindow):
         exit = self.actions.setdefault(
             "exit", QAction(self.icons["exit"], "Exit", self)
         )
-        exit.setShortcut(self.shortcut_exit)
+        exit.setShortcut(Shortcuts.quit)
         exit.setStatusTip("Exit")
         exit.triggered.connect(self.close)
 
@@ -126,7 +132,7 @@ class MainWindow(QMainWindow):
         exit = self.actions.setdefault(
             "open", QAction(self.icons["open"], "Open", self)
         )
-        exit.setShortcut(self.shortcut_open)
+        exit.setShortcut(Shortcuts.open)
         exit.setStatusTip("Open")
         # exit.triggered.connect(self.dia)
 
