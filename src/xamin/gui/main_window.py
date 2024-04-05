@@ -2,12 +2,13 @@
 The main (root) window 
 """
 import typing as t
+from pathlib import Path
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QMainWindow, QStatusBar, QVBoxLayout, QHBoxLayout, QWidget,
-                             QMenuBar, QMenu, QTextEdit, QToolBar, QListWidget, 
+from PyQt6.QtWidgets import (QMainWindow, QStatusBar, QHBoxLayout, QWidget,
+                             QMenuBar, QTextEdit, QToolBar, QListWidget,
                              QTabWidget, QApplication)
-from PyQt6.QtGui import QIcon, QAction, QFont
+from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap
 from thatway import Setting
 
 __all__ = ('MainWindow',)
@@ -31,6 +32,7 @@ class MainWindow(QMainWindow):
     font_size = Setting(15, desc="Default font size")
 
     #: Default keyboard shortcuts for actions
+    shortcut_open = Setting('Ctrl+O', desc="Open shortcut")
     shortcut_exit = Setting('Ctrl+Q', desc="Exit shortcut")
 
     # Menubar options
@@ -51,6 +53,9 @@ class MainWindow(QMainWindow):
     #: Fonts
     fonts: t.Dict[str, QFont]
 
+    #: Icons
+    icons: t.Dict[str, QIcon]
+
     #: Menu bar widget for the main window
     menubar: QMenuBar
 
@@ -69,9 +74,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # Populate default mutables
-        self.actions = dict()
+        # Configure assets
         self.fonts = {'default': QFont(self.font_family, self.font_size)}
+        self._create_icons()
 
         # Configure the main window
         self.setWindowTitle("xamin")
@@ -99,12 +104,38 @@ class MainWindow(QMainWindow):
 
     def _create_actions(self):
         """Create actions for menubar and toolbars"""
+        self.actions = dict()
+
         # Exit application action
         exit = self.actions.setdefault('exit', 
-                                       QAction(QIcon('exit24.png'), 'Exit', self))
+                                       QAction(self.icons['exit'], 'Exit', self))
         exit.setShortcut(self.shortcut_exit)
         exit.setStatusTip('Exit')
         exit.triggered.connect(self.close)
+
+        # Open application action
+        exit = self.actions.setdefault('open', 
+                                       QAction(self.icons['open'], 'Open', self))
+        exit.setShortcut(self.shortcut_open)
+        exit.setStatusTip('Open')
+        # exit.triggered.connect(self.dia)
+
+    def _create_icons(self):
+        icons = dict()
+        self.icons = icons
+
+        # Setup icons
+        QIcon.setThemeName('default')
+
+        # Populate icons
+        base_dir = Path(__file__).parent / 'icons' / 'dark'
+        paths = {
+            'exit': base_dir / 'actions' / 'application-exit.svg',
+            'open': base_dir / 'actions' / 'document-open.svg',
+        }
+        for name, item in paths.items():
+            icons[name] = (QIcon(QPixmap(str(item)))  
+                           if isinstance(item, Path) else item)
 
     def _create_menubar(self):
         """Create menubar for the main window"""
@@ -124,9 +155,11 @@ class MainWindow(QMainWindow):
         # Create the toolbar
         self.toolbar = QToolBar('toobar')
         self.toolbar.setOrientation(Qt.Orientation.Vertical)
-        self.addToolBar(Qt.ToolBarArea.RightToolBarArea, self.toolbar)
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, self.toolbar)
         
         # Add toolbar actions
+        self.toolbar.addAction(self.actions['open'])
         self.toolbar.addAction(self.actions['exit'])
 
         # Configure toolbar
@@ -143,8 +176,8 @@ class MainWindow(QMainWindow):
 
         # Format the widgets in the workspace
         hlayout = QHBoxLayout()
-        hlayout.addWidget(self.project_list)
         hlayout.addWidget(self.tabs)
+        hlayout.addWidget(self.project_list)
 
         self.central_widget.setLayout(hlayout)
 
