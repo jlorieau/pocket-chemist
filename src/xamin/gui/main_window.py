@@ -124,9 +124,6 @@ class MainWindow(QMainWindow):
         icons = dict()
         self.icons = icons
 
-        # Setup icons
-        QIcon.setThemeName('default')
-
         # Populate icons
         base_dir = Path(__file__).parent / 'icons' / 'dark'
         paths = {
@@ -201,7 +198,9 @@ class MainWindow(QMainWindow):
 
         # Configure the tabs
         self.tabs.setFont(self.get_font('tabs'))
-        self.tabs.setTabsClosable(True)
+        self.tabs.setTabsClosable(True)  # Allow tabs to close
+        self.tabs.setTabBarAutoHide(True)  # Only show tabs when more than 1 present
+        self.tabs.setMovable(True)  # Users can move tabs
 
 
     @staticmethod
