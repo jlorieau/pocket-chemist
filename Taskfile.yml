@@ -8,4 +8,4 @@ tasks:
   develop:
     desc: "Install xamin in (editable) developer mose"
     cmds:
-      - pip install --editable .[testing]
+      - pip install --editable .[tests,dev]
