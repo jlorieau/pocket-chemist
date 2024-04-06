@@ -16,10 +16,11 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QToolBar,
     QListWidget,
+    QFileDialog,
     QTabWidget,
     QApplication,
 )
-from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap
+from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap, QKeySequence
 from thatway import Setting
 
 __all__ = ("MainWindow",)
@@ -31,7 +32,7 @@ class Shortcuts:
     """Application keyboard shortcuts"""
 
     open = Setting(f"{ctrl}+o", desc="Open document")
-    quit = Setting(f"{ctrl}+x", desc="Exit application")
+    quit = Setting(f"{ctrl}+q", desc="Exit application")
 
 
 class MainWindow(QMainWindow):
@@ -129,12 +130,12 @@ class MainWindow(QMainWindow):
         exit.triggered.connect(self.close)
 
         # Open application action
-        exit = self.actions.setdefault(
+        open = self.actions.setdefault(
             "open", QAction(self.icons["open"], "Open", self)
         )
-        exit.setShortcut(Shortcuts.open)
-        exit.setStatusTip("Open")
-        # exit.triggered.connect(self.dia)
+        open.setShortcut(Shortcuts.open)
+        open.setStatusTip("Open")
+        open.triggered.connect(self.add_project_files)
 
     def _create_icons(self):
         icons = dict()
@@ -160,6 +161,7 @@ class MainWindow(QMainWindow):
 
         # Populate menubar
         fileMenu = self.menubar.addMenu("&File")
+        fileMenu.addAction(self.actions["open"])
         fileMenu.addAction(self.actions["exit"])
 
     def _create_toolbar(self):
@@ -229,3 +231,8 @@ class MainWindow(QMainWindow):
         earlier names."""
         match_names = [name for name in names if name in self.fonts]
         return self.fonts[match_names[0]] if match_names else self.fonts["default"]
+
+    def add_project_files(self) -> None:
+        """Add project files with the file dialog"""
+        dialog = QFileDialog()
+        files = dialog.getOpenFileNames()
