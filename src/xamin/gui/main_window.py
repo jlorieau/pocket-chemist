@@ -11,12 +11,15 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QStatusBar,
     QHBoxLayout,
+    QVBoxLayout,
     QWidget,
     QMenuBar,
     QTextEdit,
     QToolBar,
+    QLabel,
     QListWidget,
     QFileDialog,
+    QSplitter,
     QTabWidget,
     QApplication,
 )
@@ -82,6 +85,7 @@ class MainWindow(QMainWindow):
 
     #: Project listing widget for the main window
     project_list: QListWidget
+    project_widget: QVBoxLayout
 
     #: Tab workspace view widget
     tabs: QTabWidget
@@ -182,18 +186,23 @@ class MainWindow(QMainWindow):
 
     def _create_central_widget(self):
         """Create the workspace central widget with project files list and work views"""
-        self.central_widget = QWidget()
-
         # Create sub-widgets
         self._create_project_list()
         self._create_tabs()
 
         # Format the widgets in the workspace
-        hlayout = QHBoxLayout()
-        hlayout.addWidget(self.tabs)
-        hlayout.addWidget(self.project_list)
+        splitter = QSplitter()
+        splitter.addWidget(self.tabs)
+        splitter.addWidget(self.project_list)
 
-        self.central_widget.setLayout(hlayout)
+        # Configure the splitter
+        font = self.get_font()
+        width = font.pointSize() * self.project_list_width
+        current_size = self.size()
+        flex_width = current_size.width() - width
+        splitter.setSizes((flex_width, width))
+
+        self.central_widget = splitter
 
     def _create_project_list(self):
         """Create the project listing widget"""
@@ -202,9 +211,6 @@ class MainWindow(QMainWindow):
         # Configure project list settings
         font = self.get_font("project_list")
         self.project_list.setFont(font)
-
-        width = font.pointSize() * self.project_list_width
-        self.project_list.setFixedWidth(width)
 
         # Add project list items
         self.project_list.addItem("Item 1")
