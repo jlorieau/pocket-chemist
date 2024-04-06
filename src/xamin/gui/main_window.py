@@ -193,7 +193,7 @@ class MainWindow(QMainWindow):
         # Format the widgets in the workspace
         splitter = QSplitter()
         splitter.addWidget(self.tabs)
-        splitter.addWidget(self.project_list)
+        splitter.addWidget(self.project_widget)
 
         # Configure the splitter
         font = self.get_font()
@@ -207,6 +207,14 @@ class MainWindow(QMainWindow):
     def _create_project_list(self):
         """Create the project listing widget"""
         self.project_list = QListWidget()
+        self.project_widget = QWidget()
+
+        # Set project widget layout
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(QLabel("Project List"))
+        vlayout.addWidget(self.project_list)
+        vlayout.setContentsMargins(0, 0, 0, 0)
+        self.project_widget.setLayout(vlayout)
 
         # Configure project list settings
         font = self.get_font("project_list")
