@@ -8,27 +8,28 @@ from platform import system
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
+    QApplication,
     QMainWindow,
     QStatusBar,
-    QHBoxLayout,
-    QVBoxLayout,
     QWidget,
     QMenuBar,
     QTextEdit,
     QToolBar,
-    QLabel,
-    QListWidget,
     QFileDialog,
     QSplitter,
     QTabWidget,
     QApplication,
 )
 from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap, QKeySequence
+from loguru import logger
 from thatway import Setting
 
 from .projects import ProjectsModel, ProjectsView
 
-__all__ = ("MainWindow",)
+__all__ = (
+    "MainApplication",
+    "MainWindow",
+)
 
 ctrl = "Cmd" if system() == "Darwin" else "Ctrl"
 
@@ -38,6 +39,30 @@ class Shortcuts:
 
     open = Setting(f"{ctrl}+o", desc="Open document")
     quit = Setting(f"{ctrl}+q", desc="Exit application")
+
+
+class MainApplication(QApplication):
+    """The Qt GUI appication"""
+
+    style = Setting("Fusion", desc="Widget style name")
+
+    stylesheet_file = Setting(
+        "styles/default.qss", desc="Widget stylesheet file to use"
+    )
+
+    def __init__(self, argv: t.List[str]) -> None:
+        super().__init__(argv)
+        logger.debug(f"MainApplication loaded with args: {argv}")
+
+        # Set style
+        self.setStyle(self.style)
+        logger.debug(f"MainApplication style loaded: {self.style}")
+
+        qss_file = Path(__file__).parent / self.stylesheet_file
+        if qss_file.is_file():
+            with open(qss_file, "r") as f:
+                self.setStyleSheet(f.read())
+            logger.debug(f"QApplication style sheet loaded: {qss_file}")
 
 
 class MainWindow(QMainWindow):

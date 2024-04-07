@@ -14,16 +14,11 @@ def add_command(root_command):
 @click.argument("args", nargs=-1)
 def gui(args):
     """The graphical user interface (GUI) arguments"""
-    from ..gui import MainWindow
-    from PyQt6.QtWidgets import QApplication
-    from loguru import logger
+    from ..gui import MainApplication, MainWindow
 
-    logger.debug(f"args: {args}")
     # Create the root app
-    app = QApplication(list(args))
+    app = MainApplication(list(args))
 
-    # Set style
-    app.setStyle("Fusion")
     # Create the main window
     window = MainWindow(*args)
     window.show()

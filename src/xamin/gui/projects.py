@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QAbstractListModel, Qt, QModelIndex
 from PyQt6.QtGui import QStandardItem
-from PyQt6.QtWidgets import QTreeView, QWidget
+from PyQt6.QtWidgets import QListView
 from loguru import logger
 
 
@@ -112,11 +112,5 @@ class ProjectsModel(QAbstractListModel):
         return len(new_paths)
 
 
-class ProjectsView(QTreeView):
+class ProjectsView(QListView):
     """Tree view for projects"""
-
-    def __init__(self, parent: t.Optional[QWidget] = None) -> None:
-        super().__init__(parent)
-
-        # Configure appearance of view
-        self.setHeaderHidden(True)
