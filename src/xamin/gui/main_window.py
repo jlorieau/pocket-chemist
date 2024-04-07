@@ -26,6 +26,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap, QKeySequence
 from thatway import Setting
 
+from .projects import ProjectsModel, ProjectsView
+
 __all__ = ("MainWindow",)
 
 ctrl = "Cmd" if system() == "Darwin" else "Ctrl"
@@ -60,7 +62,7 @@ class MainWindow(QMainWindow):
     toolbar_visible = Setting(True, desc="Display toolbar")
 
     #: Default project list options
-    project_list_width = Setting(10, desc="Default width (chars) for project list")
+    projects_view_width = Setting(10, desc="Default width (chars) for project listing")
 
     #: Central widget of the main window
     central_widget: QWidget
@@ -84,13 +86,13 @@ class MainWindow(QMainWindow):
     statusbar: QStatusBar
 
     #: Project listing widget for the main window
-    project_list: QListWidget
-    project_widget: QVBoxLayout
+    projects_model: ProjectsModel
+    projects_view: ProjectsView
 
     #: Tab workspace view widget
     tabs: QTabWidget
 
-    def __init__(self):
+    def __init__(self, *args):
         super().__init__()
 
         # Configure assets
@@ -102,7 +104,7 @@ class MainWindow(QMainWindow):
         self.resize(self.window_width, self.window_height)
 
         # Create core widgets
-        self._create_central_widget()
+        self._create_central_widget(*args)
         self._create_actions()
         self._create_menubar()
         if self.toolbar_visible:
@@ -184,44 +186,38 @@ class MainWindow(QMainWindow):
         font = self.get_font("toolbar")
         self.toolbar.setFont(font)
 
-    def _create_central_widget(self):
+    def _create_central_widget(self, *args):
         """Create the workspace central widget with project files list and work views"""
         # Create sub-widgets
-        self._create_project_list()
+        self._create_projects(*args)
         self._create_tabs()
 
         # Format the widgets in the workspace
         splitter = QSplitter()
         splitter.addWidget(self.tabs)
-        splitter.addWidget(self.project_widget)
+        splitter.addWidget(self.projects_view)
 
         # Configure the splitter
         font = self.get_font()
-        width = font.pointSize() * self.project_list_width
+        width = font.pointSize() * self.projects_view_width
         current_size = self.size()
         flex_width = current_size.width() - width
         splitter.setSizes((flex_width, width))
 
         self.central_widget = splitter
 
-    def _create_project_list(self):
+    def _create_projects(self, *args):
         """Create the project listing widget"""
-        self.project_list = QListWidget()
-        self.project_widget = QWidget()
+        self.projects_model = ProjectsModel()
+        self.projects_view = ProjectsView()
 
-        # Set project widget layout
-        vlayout = QVBoxLayout()
-        vlayout.addWidget(QLabel("Project List"))
-        vlayout.addWidget(self.project_list)
-        vlayout.setContentsMargins(0, 0, 0, 0)
-        self.project_widget.setLayout(vlayout)
+        # Configure model and view
+        self.projects_model.append_files(*args)
+        self.projects_view.setModel(self.projects_model)
 
         # Configure project list settings
-        font = self.get_font("project_list")
-        self.project_list.setFont(font)
-
-        # Add project list items
-        self.project_list.addItem("Item 1")
+        font = self.get_font("projects")
+        self.projects_view.setFont(font)
 
     def _create_tabs(self):
         """Create the tabs widget"""
