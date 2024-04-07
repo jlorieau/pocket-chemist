@@ -46,9 +46,7 @@ class MainApplication(QApplication):
 
     style = Setting("Fusion", desc="Widget style name")
 
-    stylesheet_file = Setting(
-        "styles/default.qss", desc="Widget stylesheet file to use"
-    )
+    stylesheet_file = Setting("styles/dark.qss", desc="Widget stylesheet file to use")
 
     def __init__(self, argv: t.List[str]) -> None:
         super().__init__(argv)

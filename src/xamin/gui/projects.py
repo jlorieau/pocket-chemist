@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QAbstractListModel, Qt, QModelIndex
 from PyQt6.QtGui import QStandardItem
-from PyQt6.QtWidgets import QListView
+from PyQt6.QtWidgets import QListView, QWidget
 from loguru import logger
 
 
@@ -114,3 +114,7 @@ class ProjectsModel(QAbstractListModel):
 
 class ProjectsView(QListView):
     """Tree view for projects"""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAlternatingRowColors(True)
