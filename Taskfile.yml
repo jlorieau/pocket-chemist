@@ -18,4 +18,4 @@ tasks:
         --name xamin \
         --add-data src/xamin/gui/icons:xamin/gui/icons \
         --add-data src/xamin/gui/styles:xamin/gui/styles \
-        --onefile --windowed --clean
+        --windowed --clean
