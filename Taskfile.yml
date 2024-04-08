@@ -9,3 +9,13 @@ tasks:
     desc: "Install xamin in (editable) developer mose"
     cmds:
       - pip install --editable .[tests,dev]
+
+  build:
+    desc: "Build xamin with pyinstaller"
+    cmds: 
+      - |
+        pyinstaller src/xamin/__main__.py \
+        --name xamin \
+        --add-data src/xamin/gui/icons:xamin/gui/icons \
+        --add-data src/xamin/gui/styles:xamin/gui/styles \
+        --onefile --windowed --clean
