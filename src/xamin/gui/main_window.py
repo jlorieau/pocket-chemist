@@ -198,7 +198,6 @@ class MainWindow(QMainWindow):
         # Create the toolbar
         self.toolbar = QToolBar("toobar")
         self.toolbar.setOrientation(Qt.Orientation.Vertical)
-        self.toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, self.toolbar)
 
         # Add toolbar actions
@@ -268,4 +267,4 @@ class MainWindow(QMainWindow):
     def add_project_files(self) -> None:
         """Add project files with the file dialog"""
         dialog = QFileDialog()
-        files = dialog.getOpenFileNames()
+        files, filter = dialog.getOpenFileNames()
