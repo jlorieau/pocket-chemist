@@ -4,18 +4,23 @@ Models and views for projects and project items
 
 import typing as t
 from pathlib import Path
+from dataclasses import dataclass
 
 from PyQt6.QtCore import QAbstractListModel, Qt, QModelIndex
 from PyQt6.QtGui import QStandardItem
-from PyQt6.QtWidgets import QListView, QWidget
+from PyQt6.QtWidgets import QListView
 from loguru import logger
 
 
 __all__ = ("ProjectsModel", "ProjectsView", "Entry")
 
 
+@dataclass
 class AbstractEntry(QStandardItem):
     """An abstract project entry"""
+
+    #: The name representation in the project listing widget
+    name: str
 
     def __repr__(self) -> str:
         return ""
@@ -27,8 +32,8 @@ class FileEntry(AbstractEntry):
     #: The path of the file
     path: Path
 
-    def __init__(self, path):
-        super().__init__()
+    def __init__(self, name, path):
+        super().__init__(name)
         self.path = path
 
     def __repr__(self) -> str:
@@ -41,9 +46,9 @@ class ProjectsModel(QAbstractListModel):
     # A list of project entries with name (key) and entry (value)
     entries = t.List[AbstractEntry]
 
-    def __init__(self):
+    def __init__(self, entries: t.Optional[t.List[AbstractEntry]] = None):
         super().__init__()
-        self.entries = []
+        self.entries = [] if entries is None else entries
 
     def insertRows(self, row, count, parent=QModelIndex()) -> bool:
         """Insert rows into the model's data"""
@@ -71,7 +76,7 @@ class ProjectsModel(QAbstractListModel):
             return None
 
         if role == Qt.ItemDataRole.DisplayRole:
-            return repr(self.entries[index.row()])
+            return self.entries[index.row()].name
         return None
 
     def setData(
@@ -95,21 +100,65 @@ class ProjectsModel(QAbstractListModel):
         paths = [Path(i) for i in args if type(i) in (str, Path)]
 
         # Find new paths for existing files
-        existing_paths = {e.path for e in self.entries if isinstance(e, FileEntry)}
-        new_paths = [
-            FileEntry(p) for p in paths if p.is_file() and p not in existing_paths
-        ]
+        existing_paths = {
+            e.path.absolute() for e in self.entries if isinstance(e, FileEntry)
+        }
+        existing_names = {e.name for e in self.entries}
+        file_entries = []
 
-        logger.debug(f"Adding {','.join([str(p) for p in new_paths])}")
+        for p in paths:
+            # Skip non-file paths or paths that have already been added
+            if not p.is_file() or p.absolute() in existing_paths:
+                continue
 
-        # Append the files
+            # Otherwise create a new FileEntry
+            name = self._find_unique_name(p.name, existing_names=existing_names)
+            new_entry = FileEntry(name=name, path=p)
+
+            # Add the entry to the new file_entries listing
+            file_entries.append(new_entry)
+
+            # Add the entry's name to the existing entry names (to avoid dupes)
+            existing_names.add(name)
+
+        if file_entries:
+            logger.debug(
+                "Adding FileEntries: " + f"{', '.join([str(e) for e in file_entries])}"
+            )
+
+        # Append the file entries
         start_row = self.index(len(self.entries))
-        self.entries += new_paths
-        end_row = self.index(len(self.entries) + len(new_paths))
+        self.entries += file_entries
+        end_row = self.index(len(self.entries) + len(file_entries))
 
         # emit signal
         self.dataChanged.emit(start_row, end_row)
-        return len(new_paths)
+        return len(file_entries)
+
+    @staticmethod
+    def _find_unique_name(
+        name: str, existing_names: t.Iterable[str], prefix: str = " ({number:1})"
+    ) -> str:
+        """Given a list of existing names produce a name that is unique.
+
+        Examples
+        --------
+        >>> ProjectsModel._find_unique_name('test', ('one', 'two'))
+        'test'
+        >>> ProjectsModel._find_unique_name('one', ('one', 'two'))
+        'one (2)'
+        >>> ProjectsModel._find_unique_name('one', ('one', 'one (2)'))
+        'one (3)'
+        """
+        if name not in existing_names:
+            return name
+
+        for num in range(999):
+            new_name = name.strip() + prefix.format(number=num)
+            if new_name not in existing_names:
+                return new_name
+
+        raise AssertionError(f"Could not find a unique name for {name}")
 
 
 class ProjectsView(QListView):
