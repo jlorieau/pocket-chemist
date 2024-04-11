@@ -1,4 +1,6 @@
 import typing as t
+import csv
+import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
 from dataclasses import dataclass
@@ -6,7 +8,7 @@ from hashlib import sha256
 
 from thatway import Setting
 
-__all__ = ("Entry", "TextEntry", "BinaryEntry")
+__all__ = ("Entry", "TextEntry", "BinaryEntry", "CsvEntry")
 
 # The types that a 'hint' can adopt
 HintType = t.Union[t.Text, t.ByteString, None]
@@ -115,8 +117,10 @@ class Entry(ABC):
             return ""
         elif isinstance(self._data, str):
             return sha256(self._data.encode(self.text_encoding)).hexdigest()
-        else:
+        elif isinstance(self._data, bytes):
             return sha256(self._data).hexdigest()
+        else:
+            return sha256(pickle.dumps(self._data)).hexdigest()
 
     @property
     def data(self) -> t.Any:
@@ -192,8 +196,9 @@ class TextEntry(Entry):
 
     def save(self):
         """Overrides the parent method to save the text data to self.path"""
-        if self.is_changed and self._data:
-            self.path.write_text(self._data)
+        data = self.data
+        if self.is_changed and data:
+            self.path.write_text(data)
             super().save()
 
 
@@ -239,6 +244,69 @@ class BinaryEntry(Entry):
 
     def save(self):
         """Overrides the parent method to save the text data to self.path"""
-        if self.is_changed and self._data:
-            self.path.write_bytes(self._data)
+        data = self.data
+        if self.is_changed and data:
+            self.path.write_bytes(data)
+            super().save()
+
+
+class CsvEntry(TextEntry):
+    """A csv/tsv file entry in a project"""
+
+    #: The cached CSV dialect
+    _dialect: t.Optional[csv.Dialect] = None
+
+    @classmethod
+    def is_type(cls, path: Path, hint: HintType = None) -> bool:
+        """Overrides  parent class method to test whether path is a CsvEntry."""
+        hint = hint if hint is not None else cls.get_hint(path)
+        try:
+            csv.Sniffer().sniff(hint)  # Try to find the dialect
+            return True
+        except:
+            return False
+
+    @property
+    def dialect(self) -> csv.Dialect:
+        """Retrieve the dialect for the csv file"""
+        if self._dialect is None:
+            self._dialect = csv.Sniffer().sniff(self.get_hint(path=self.path))
+        return self._dialect
+
+    @property
+    def data(self) -> t.List[t.Tuple[str]]:
+        """Overrides parent class method to return the file's binary contents."""
+        # Read in the data, if needed
+        if not self._data and self.path:
+            with open(self.path, "r") as f:
+                reader = csv.reader(f, dialect=self.dialect)
+                self._data = list(reader)
+        return super().data
+
+    @data.setter
+    def data(self, value):
+        """Overrides parent data setter.
+
+        Raises
+        ------
+        TypeError
+            If the given value isn't a byte string.
+        """
+        if not isinstance(value, t.Iterable):
+            raise TypeError("Expected 'iterable' value type")
+        self._data = value
+
+    @property
+    def shape(self) -> t.Tuple[int, int]:
+        """Override parent method to give 2d shape in rows, columns"""
+        data = self.data
+        return (len(data), len(data[0]) if data else 0)
+
+    def save(self):
+        """Overrides the parent method to save the text data to self.path"""
+        data = self.data
+        if self.is_changed and data:
+            with open(self.path, "w") as f:
+                writer = csv.writer(f, dialect=self.dialect)
+                writer.writerows(data)
             super().save()
