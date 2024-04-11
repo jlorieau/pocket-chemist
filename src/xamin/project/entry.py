@@ -154,6 +154,7 @@ class Entry(ABC):
         self._loaded_hash = self.hash  # Reset the loaded hash
 
 
+@dataclass
 class TextEntry(Entry):
     """A text file entry in a project"""
 
@@ -202,6 +203,7 @@ class TextEntry(Entry):
             super().save()
 
 
+@dataclass
 class BinaryEntry(Entry):
     """A binary file entry in a project"""
 
@@ -250,6 +252,7 @@ class BinaryEntry(Entry):
             super().save()
 
 
+@dataclass
 class CsvEntry(TextEntry):
     """A csv/tsv file entry in a project"""
 
