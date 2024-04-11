@@ -2,10 +2,11 @@ import typing as t
 from abc import ABC, abstractmethod
 from pathlib import Path
 from dataclasses import dataclass
+from hashlib import sha256
 
 from thatway import Setting
 
-__all__ = ("Entry",)
+__all__ = ("Entry", "TextEntry")
 
 # The types that a 'hint' can adopt
 HintType = t.Union[t.Text, t.ByteString, None]
@@ -15,11 +16,11 @@ HintType = t.Union[t.Text, t.ByteString, None]
 class Entry(ABC):
     """A file entry in a project"""
 
-    #: The (short-)name of the entry
-    name: str
-
     #: The path of the file
-    path: t.Optional[Path] = None
+    path: t.Optional[Path]
+
+    #: The (short-)name of the entry
+    name: str = None
 
     #: Settings to change the default behavior
     hint_size = Setting(2048, desc="Size (in bytes) of the hint to read from the file")
@@ -72,21 +73,7 @@ class Entry(ABC):
     @classmethod
     @abstractmethod
     def is_type(cls, path: Path, hint: HintType = None) -> bool:
-        """Determine if the given file hint can be converted to this type"""
-        return False
-
-    @abstractmethod
-    def is_unsaved(self) -> bool:
-        """Determine whether the given entry has unsaved changes"""
-        return True
-
-
-class TextEntry(Entry):
-    """A text file entry in a project"""
-
-    @classmethod
-    def is_type(cls, path: Path, hint: HintType = None) -> bool:
-        """Return True if this is a Text File Entry.
+        """Return True if path can be parsed as this Entry's type.
 
         Parameters
         ----------
@@ -99,6 +86,64 @@ class TextEntry(Entry):
         -------
         is_type
             True, if the file can be loaded as this Entry's type
+        """
+        return False
+
+    @property
+    @abstractmethod
+    def is_changed(self) -> bool:
+        """Determine whether the given entry has changed and not been saved."""
+        return True
+
+    @property
+    def hash(self) -> str:
+        """The hash for the current data to determine when the data has changed since
+        it was loaded.
+
+        Returns
+        -------
+        hash
+            - Empty string, if a hash could not be calculated
+            - A hex hash (sha256) of the data
+        """
+        if self.data is None:
+            return ""
+        elif isinstance(self.data, str):
+            return sha256(self.data.encode(self.text_encoding)).hexdigest()
+        else:
+            return sha256(self.data).hexdigest()
+
+    @property
+    @abstractmethod
+    def data(self) -> t.Any:
+        """Return the data (or an iterator) of the data"""
+        return None
+
+    @property
+    def shape(self) -> t.Tuple[int, ...]:
+        """Return the shape of the data--i.e. the length along each data array
+        dimension."""
+        data = self.data
+        return data.shape() if hasattr(data, "shape") else (len(data),)
+
+    @abstractmethod
+    def save(self):
+        """Save the data to self.path"""
+        return None
+
+
+class TextEntry(Entry):
+    """A text file entry in a project"""
+
+    #: A copy of the text data
+    _data: t.Union[str, None] = None
+
+    #: The data hash at load time
+    _loaded_hash: str = ""
+
+    @classmethod
+    def is_type(cls, path: Path, hint: HintType = None) -> bool:
+        """Overrides  parent class method to test whether path is a TextEntry.
 
         Examples
         --------
@@ -112,3 +157,25 @@ class TextEntry(Entry):
         """
         hint = hint if hint is not None else cls.get_hint(path)
         return isinstance(hint, str)
+
+    @property
+    def is_changed(self) -> bool:
+        return self.hash != self._loaded_hash
+
+    @property
+    def data(self) -> str:
+        """Overrides parent class method to return the file's text."""
+        if not self._data or not self.path:
+            self._data = self.path.read_text()
+            self._loaded_hash = self.hash  # set the loaded hash
+
+        return self._data or ""
+
+    @data.setter
+    def data(self, value: str):
+        self._data = value
+
+    def save(self):
+        """Overrides the parent method to save the text data to self.path"""
+        if self.is_changed and self._data:
+            self.path.write_text(self._data)
