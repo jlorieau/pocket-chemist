@@ -21,9 +21,6 @@ class Entry(ABC):
     #: The path of the file
     path: Path
 
-    #: The (short-)name of the entry
-    name: t.Optional[str] = None
-
     #: Settings to change the default behavior
     hint_size = Setting(2048, desc="Size (in bytes) of the hint to read from the file")
 
