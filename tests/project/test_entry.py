@@ -26,6 +26,16 @@ def entry(request, tmp_path) -> TextEntry:
         raise AssertionError("Unknown type")
 
 
+def test_entry_is_type(entry):
+    """Test the Entry 'is_type' class method."""
+    if isinstance(entry, TextEntry):
+        assert TextEntry.is_type(entry.path)
+        assert not BinaryEntry.is_type(entry.path)
+    elif isinstance(entry, BinaryEntry):
+        assert BinaryEntry.is_type(entry.path)
+        assert not TextEntry.is_type(entry.path)
+
+
 def test_entry_load(entry):
     """Test the Entry loading of a file"""
     if isinstance(entry, TextEntry):
