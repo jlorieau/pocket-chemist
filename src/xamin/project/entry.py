@@ -6,7 +6,7 @@ from hashlib import sha256
 
 from thatway import Setting
 
-__all__ = ("Entry", "TextEntry")
+__all__ = ("Entry", "TextEntry", "BinaryEntry")
 
 # The types that a 'hint' can adopt
 HintType = t.Union[t.Text, t.ByteString, None]
@@ -194,4 +194,51 @@ class TextEntry(Entry):
         """Overrides the parent method to save the text data to self.path"""
         if self.is_changed and self._data:
             self.path.write_text(self._data)
+            super().save()
+
+
+class BinaryEntry(Entry):
+    """A binary file entry in a project"""
+
+    @classmethod
+    def is_type(cls, path: Path, hint: HintType = None) -> bool:
+        """Overrides  parent class method to test whether path is a BinaryEntry.
+
+        Examples
+        --------
+        >>> p = Path(__file__)  # this .py text file
+        >>> TextEntry.is_type(p)
+        False
+        >>> import sys
+        >>> e = Path(sys.executable)  # Get the python interpreter executable
+        >>> TextEntry.is_type(e)
+        True
+        """
+        hint = hint if hint is not None else cls.get_hint(path)
+        return isinstance(hint, bytes)
+
+    @property
+    def data(self) -> str:
+        """Overrides parent class method to return the file's binary contents."""
+        if not self._data and self.path:
+            self._data = self.path.read_bytes()
+        return super().data
+
+    @data.setter
+    def data(self, value):
+        """Overrides parent data setter.
+
+        Raises
+        ------
+        TypeError
+            If the given value isn't a byte string.
+        """
+        if not isinstance(value, bytes):
+            raise TypeError("Expected 'bytes' value type")
+        self._data = value
+
+    def save(self):
+        """Overrides the parent method to save the text data to self.path"""
+        if self.is_changed and self._data:
+            self.path.write_bytes(self._data)
             super().save()
