@@ -5,7 +5,6 @@ import csv
 import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
-from dataclasses import dataclass, field
 from hashlib import sha256
 
 from thatway import Setting
@@ -18,12 +17,11 @@ __all__ = ("Entry", "HintType", "TextEntry", "BinaryEntry", "CsvEntry")
 HintType = t.Union[t.Text, t.ByteString, None]
 
 
-@dataclass(repr=False)
 class Entry(ABC):
     """A file entry in a project"""
 
     #: The path of the file
-    path: Path
+    path: t.Optional[Path] = None
 
     #: Settings to change the default behavior
     hint_size = Setting(2048, desc="Size (in bytes) of the hint to read from the file")
@@ -37,6 +35,10 @@ class Entry(ABC):
     _loaded_hash: str = ""
 
     _subclasses = None
+
+    def __init__(self, path: t.Optional[Path] = None):
+        self.path = path
+        super().__init__()
 
     def __repr__(self):
         """The string representation for this class"""
@@ -179,7 +181,6 @@ class Entry(ABC):
         self._loaded_hash = self.hash  # Reset the loaded hash
 
 
-@dataclass(repr=False)
 class TextEntry(Entry):
     """A text file entry in a project"""
 
@@ -228,7 +229,6 @@ class TextEntry(Entry):
             super().save()
 
 
-@dataclass(repr=False)
 class BinaryEntry(Entry):
     """A binary file entry in a project"""
 
@@ -277,9 +277,11 @@ class BinaryEntry(Entry):
             super().save()
 
 
-@dataclass(repr=False)
 class CsvEntry(TextEntry):
     """A csv/tsv file entry in a project"""
+
+    #: Customizable settings
+    default_delimiters = Setting(",\t", desc="The default delimiters to search")
 
     #: The cached CSV dialect
     _dialect: t.Optional[csv.Dialect] = None
@@ -298,7 +300,9 @@ class CsvEntry(TextEntry):
     def dialect(self) -> csv.Dialect:
         """Retrieve the dialect for the csv file"""
         if self._dialect is None:
-            self._dialect = csv.Sniffer().sniff(self.get_hint(path=self.path))
+            self._dialect = csv.Sniffer().sniff(
+                self.get_hint(path=self.path), delimiters=self.default_delimiters
+            )
         return self._dialect
 
     @property
