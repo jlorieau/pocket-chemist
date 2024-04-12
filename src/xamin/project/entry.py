@@ -1,3 +1,5 @@
+"""Entry abstract base class and concrete Base classes TextEntry and BinaryEntry"""
+
 import typing as t
 import csv
 import pickle
@@ -7,6 +9,8 @@ from dataclasses import dataclass
 from hashlib import sha256
 
 from thatway import Setting
+
+from ..utils.classes import all_subclasses
 
 __all__ = ("Entry", "HintType", "TextEntry", "BinaryEntry", "CsvEntry")
 
@@ -31,6 +35,24 @@ class Entry(ABC):
 
     #: The data hash at load/save time
     _loaded_hash: str = ""
+
+    _subclasses = None
+
+    @staticmethod
+    def subclasses() -> t.List[t.Tuple[int, "Entry"]]:
+        """Retrieve all subclasses of the Entry class as well as their class hierarchy
+        level."""
+        if Entry._subclasses is None:
+            Entry._subclasses = [
+                (c.depth(), c) for c in all_subclasses(Entry) if hasattr(c, "depth")
+            ]
+        return Entry._subclasses
+
+    @classmethod
+    def depth(cls):
+        """Return the class hierarchy depth for this class"""
+        parent_depths = [b.depth() for b in cls.__bases__ if hasattr(b, "depth")]
+        return parent_depths[0] + 1 if parent_depths else 0
 
     @classmethod
     def get_hint(cls, path: Path) -> t.Union[HintType]:

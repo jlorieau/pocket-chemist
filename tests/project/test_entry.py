@@ -5,7 +5,7 @@ import csv
 
 import pytest
 
-from xamin.project import TextEntry, BinaryEntry, CsvEntry
+from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry
 
 
 @pytest.fixture(params=["text", "binary", "csvfile"])
@@ -43,8 +43,25 @@ def entry(request, tmp_path) -> TextEntry:
         raise AssertionError("Unknown type")
 
 
+def test_entry_suclasses():
+    """Test the Entry.subclasses() static method"""
+    subclasses = Entry.subclasses()
+
+    assert (1, TextEntry) in subclasses
+    assert (1, BinaryEntry) in subclasses
+    assert (2, CsvEntry) in subclasses
+
+
+def test_entry_depth():
+    """Test the Entry.depth() baseclass method."""
+    assert Entry.depth() == 0
+    assert TextEntry.depth() == 1
+    assert BinaryEntry.depth() == 1
+    assert CsvEntry.depth() == 2
+
+
 def test_entry_is_type(entry):
-    """Test the Entry 'is_type' class method."""
+    """Test the Entry.is_type class method."""
     if isinstance(entry, TextEntry):
         assert TextEntry.is_type(entry.path)
         assert not BinaryEntry.is_type(entry.path)
