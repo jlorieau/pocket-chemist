@@ -5,7 +5,7 @@ import csv
 import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from hashlib import sha256
 
 from thatway import Setting
@@ -18,7 +18,7 @@ __all__ = ("Entry", "HintType", "TextEntry", "BinaryEntry", "CsvEntry")
 HintType = t.Union[t.Text, t.ByteString, None]
 
 
-@dataclass
+@dataclass(repr=False)
 class Entry(ABC):
     """A file entry in a project"""
 
@@ -37,6 +37,12 @@ class Entry(ABC):
     _loaded_hash: str = ""
 
     _subclasses = None
+
+    def __repr__(self):
+        """The string representation for this class"""
+        cls_name = self.__class__.__name__
+        path = str(getattr(self, "path", None))
+        return f"{cls_name}(path='{path}')"
 
     @staticmethod
     def subclasses() -> t.List[t.Tuple[int, "Entry"]]:
@@ -173,7 +179,7 @@ class Entry(ABC):
         self._loaded_hash = self.hash  # Reset the loaded hash
 
 
-@dataclass
+@dataclass(repr=False)
 class TextEntry(Entry):
     """A text file entry in a project"""
 
@@ -222,7 +228,7 @@ class TextEntry(Entry):
             super().save()
 
 
-@dataclass
+@dataclass(repr=False)
 class BinaryEntry(Entry):
     """A binary file entry in a project"""
 
@@ -271,7 +277,7 @@ class BinaryEntry(Entry):
             super().save()
 
 
-@dataclass
+@dataclass(repr=False)
 class CsvEntry(TextEntry):
     """A csv/tsv file entry in a project"""
 

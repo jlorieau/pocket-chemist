@@ -20,6 +20,11 @@ def test_entry_depth():
     assert CsvEntry.depth() == 2
 
 
+def test_entry_repr(entry):
+    """Test the Entry __repr__ method."""
+    assert repr(entry) == f"{entry.__class__.__name__}(path='{entry.path}')"
+
+
 def test_entry_is_type(entry):
     """Test the Entry.is_type class method."""
     if isinstance(entry, TextEntry):
