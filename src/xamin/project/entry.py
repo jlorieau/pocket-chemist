@@ -8,6 +8,7 @@ from pathlib import Path
 from hashlib import sha256
 
 from thatway import Setting
+from loguru import logger
 
 from ..utils.classes import all_subclasses
 
@@ -291,7 +292,8 @@ class CsvEntry(TextEntry):
         """Overrides  parent class method to test whether path is a CsvEntry."""
         hint = hint if hint is not None else cls.get_hint(path)
         try:
-            csv.Sniffer().sniff(hint)  # Try to find the dialect
+            # Try to find the dialect
+            csv.Sniffer().sniff(hint, delimiters=cls.default_delimiters)
             return True
         except:
             return False
@@ -299,10 +301,16 @@ class CsvEntry(TextEntry):
     @property
     def dialect(self) -> csv.Dialect:
         """Retrieve the dialect for the csv file"""
+
         if self._dialect is None:
             self._dialect = csv.Sniffer().sniff(
                 self.get_hint(path=self.path), delimiters=self.default_delimiters
             )
+
+            logger.debug(
+                f"{self.__class__.__name__} CSV dialect select: {self._dialect}"
+            )
+
         return self._dialect
 
     @property
