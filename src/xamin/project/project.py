@@ -33,7 +33,11 @@ class Project(Entry):
     entries: EntriesType
 
     def __init__(self, *args, entries: t.Optional[EntriesType] = None, **kwargs):
-        super().__init__(*args, **kwargs)
+        # Populate an empty path, if a path wasn't specified
+        if len(args) == 0 and "path" not in kwargs:
+            super().__init__(path=None, *args, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
 
         # Add self as a weakref to the listing opened projects
         Project._opened_projects.append(ref(self))
@@ -88,3 +92,43 @@ class Project(Entry):
                 name = entry.path
 
             self.entries[str(name)] = entry
+
+    def add_files(self, *args: t.Tuple[t.Union[str, Path]]):
+        """Add entry files to a project"""
+        # Convert the arguments to paths
+        existing_paths = {
+            e.path.absolute()
+            for e in self.entries.values()
+            if hasattr(self, "path") and self.path is not None
+        }
+        paths = [
+            Path(a)
+            for a in args
+            if (isinstance(a, str) or isinstance(a, Path))
+            and Path(a).absolute() not in existing_paths
+        ]
+
+        # Get the subclasses and their hierarchy level
+        subclasses = Entry.subclasses()
+
+        # For each path, find the most specific Entry type (highest hierarchy level),
+        # and use it to create an entry
+        entries = OrderedDict()
+        for path in paths:
+            highest_hierarchy = 0
+            best_cls = None
+            hint = Entry.get_hint(path)
+
+            for hierarchy, cls in subclasses:
+                if hierarchy > highest_hierarchy and cls.is_type(path=path, hint=hint):
+                    best_cls = cls
+
+            if best_cls is not None:
+                logger.debug(f"Found best class '{best_cls}' for path: {path}")
+                entries[str(path.absolute())] = best_cls(path=path)
+
+        # Add the new entries to this project
+        self.entries.update(entries)
+
+        # Update the project names
+        self.assign_unique_names()

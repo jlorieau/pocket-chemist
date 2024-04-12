@@ -54,3 +54,18 @@ def test_project_assign_unique_names():
     a = str(Path("file1"))
     b = "unknown (2)"
     assert list(project.entries.keys()) == [a, b]
+
+
+def test_project_add_files(entry):
+    """Test the project.add_files method"""
+    # Create a project and add an entry
+    project = Project()
+    project.add_files(entry.path)
+
+    assert len(project.entries) == 1
+
+    project_entry = list(project.entries.values())[0]
+
+    assert type(project_entry) == type(entry)
+    assert project_entry.path == entry.path
+    assert project_entry.data == entry.data
