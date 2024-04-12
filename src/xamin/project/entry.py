@@ -292,34 +292,31 @@ class CsvEntry(TextEntry):
         """Overrides  parent class method to test whether path is a CsvEntry."""
         hint = hint if hint is not None else cls.get_hint(path)
         try:
-            # Try to find the dialect
-            csv.Sniffer().sniff(hint, delimiters=cls.default_delimiters)
-            return True
+            # Try to find the dialect. If successful (without exception or None
+            # returned)
+            dialect = cls.dialect(path=path, hint=hint)
+            return True if dialect is not None else False
         except:
             return False
 
-    @property
-    def dialect(self) -> csv.Dialect:
+    @classmethod
+    def dialect(cls, path: Path, hint: HintType = None) -> csv.Dialect:
         """Retrieve the dialect for the csv file"""
+        hint = cls.get_hint(path=path) if hint is None else hint
+        dialect = csv.Sniffer().sniff(hint, delimiters=cls.default_delimiters)
 
-        if self._dialect is None:
-            self._dialect = csv.Sniffer().sniff(
-                self.get_hint(path=self.path), delimiters=self.default_delimiters
-            )
-
-            logger.debug(
-                f"{self.__class__.__name__} CSV dialect select: {self._dialect}"
-            )
-
-        return self._dialect
+        logger.debug(f"{cls.__name__} CSV dialect select: {dialect}")
+        return dialect
 
     @property
     def data(self) -> t.List[t.Tuple[str]]:
         """Overrides parent class method to return the file's binary contents."""
         # Read in the data, if needed
         if not self._data and self.path:
+            dialect = self.dialect(path=self.path)
+
             with open(self.path, "r") as f:
-                reader = csv.reader(f, dialect=self.dialect)
+                reader = csv.reader(f, dialect=dialect)
                 self._data = list(reader)
         return super().data
 
@@ -346,7 +343,14 @@ class CsvEntry(TextEntry):
         """Overrides the parent method to save the text data to self.path"""
         data = self.data
         if self.is_changed and data:
+            # Try to get a dialect. Default to 'excel' (csv) if a dialect cannot
+            # be selected from the path
+            try:
+                dialect = self.get_dialect(self.path) or "excel"
+            except:
+                dialect = "excel"
+
             with open(self.path, "w") as f:
-                writer = csv.writer(f, dialect=self.dialect)
+                writer = csv.writer(f, dialect=dialect)
                 writer.writerows(data)
             super().save()
