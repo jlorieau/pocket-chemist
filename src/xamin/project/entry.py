@@ -8,7 +8,7 @@ from hashlib import sha256
 
 from thatway import Setting
 
-__all__ = ("Entry", "TextEntry", "BinaryEntry", "CsvEntry")
+__all__ = ("Entry", "HintType", "TextEntry", "BinaryEntry", "CsvEntry")
 
 # The types that a 'hint' can adopt
 HintType = t.Union[t.Text, t.ByteString, None]
