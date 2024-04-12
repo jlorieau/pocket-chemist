@@ -15,15 +15,14 @@ def all_subclasses(cls):
     -------
     subclasses : list
         The list of all subclasses.
-        
+
     Examples
     --------
     >>> class A(object): pass
     >>> class B(A): pass
     >>> class C(B): pass
     >>> all_subclasses(A)
-    [<class 'disseminate.utils.classes.B'>, \
-<class 'disseminate.utils.classes.C'>]
+    [<class 'xamin.utils.classes.B'>, <class 'xamin.utils.classes.C'>]
     """
     return cls.__subclasses__() + [
         g for s in cls.__subclasses__() for g in all_subclasses(s)
