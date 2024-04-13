@@ -179,10 +179,11 @@ class Entry(ABC):
         """Return the shape of the data--i.e. the length along each data array
         dimension."""
         data = self.data
+
         if hasattr(data, "shape"):
             return data.shape()
         elif hasattr(data, "__len__"):
-            return len(data)
+            return (len(data),)
         else:
             return ()
 
