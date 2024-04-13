@@ -21,6 +21,9 @@ class CsvEntry(TextEntry):
     #: Customizable settings
     default_delimiters = Setting(",\t", desc="The default delimiters to search")
 
+    # Locally cached data
+    _data: t.List
+
     #: The cached CSV dialect
     _dialect: t.Optional[csv.Dialect] = None
 
@@ -47,7 +50,7 @@ class CsvEntry(TextEntry):
 
     @property
     def data(self) -> t.List[t.Tuple[str]]:
-        """Overrides parent class method to return the file's binary contents."""
+        """Overrides parent class method to return the file's formatted contents."""
         # Read in the data, if needed
         if not self._data and self.path:
             dialect = self.dialect(path=self.path)
@@ -64,7 +67,7 @@ class CsvEntry(TextEntry):
         Raises
         ------
         TypeError
-            If the given value isn't a byte string.
+            If the given value isn't an iterable.
         """
         if not isinstance(value, t.Iterable):
             raise TypeError("Expected 'iterable' value type")

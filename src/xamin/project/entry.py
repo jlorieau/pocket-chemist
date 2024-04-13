@@ -166,7 +166,7 @@ class Entry(ABC):
 
         Subclasses are responsible for load the data and calling this parent
         property."""
-        self._loaded_hash = self.hash
+        self.reset_hash()
         return self._data
 
     @data.setter
