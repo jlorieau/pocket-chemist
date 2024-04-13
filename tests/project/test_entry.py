@@ -1,5 +1,8 @@
 """Tests for the Entry classes"""
 
+import inspect
+
+import pytest
 from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry
 
 
@@ -50,8 +53,8 @@ def test_entry_load(entry):
         assert entry.shape == (len(entry.data),)
 
 
-def test_entry_is_changed(entry):
-    """Test the Entry is_changed property"""
+def test_entry_is_unsaved(entry):
+    """Test the Entry is_unsaved property"""
     # Prepare extra data by type
     if isinstance(entry, CsvEntry):
         extra = [10, 11, 12, 13, 14, 15]
@@ -61,19 +64,19 @@ def test_entry_is_changed(entry):
         extra = b"some extra stuff"
 
     # Data should not be changed before the data method loads it
-    assert not entry.is_changed
+    assert not entry.is_unsaved
 
     # Get the original data
     original_data = entry.data
-    assert not entry.is_changed
+    assert not entry.is_unsaved
 
     # Modify it and change that the text_entry has changed
     entry.data = original_data + extra
-    assert entry.is_changed
+    assert entry.is_unsaved
 
-    # Reset it and the is_changed flag should change
+    # Reset it and the is_unsaved flag should change
     entry.data = original_data
-    assert not entry.is_changed
+    assert not entry.is_unsaved
 
 
 def test_entry_save(entry):
@@ -98,3 +101,23 @@ def test_entry_save(entry):
 
     entry.save()
     assert entry.path.stat().st_mtime >= start_mtime
+
+
+def test_entry_no_path(entry_cls):
+    """Test entry classes with no path"""
+    # Don't run if it's an abstract class
+    if inspect.isabstract(entry_cls):
+        pytest.skip()
+
+    # Instantiate the entry
+    entry = entry_cls(path=None)
+
+    assert entry.is_unsaved  # Entries without paths are unsaved and are changed
+    assert repr(entry)  # entries can still be converted to strings
+    assert entry.hash == ""  # An empty hash is returned
+    assert entry.data is None  # It has no data
+    assert entry.shape == ()  # The data has no shape
+
+    # Trying to save raises an exception
+    with pytest.raises(FileNotFoundError):
+        entry.save()

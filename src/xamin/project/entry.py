@@ -126,9 +126,19 @@ class Entry(ABC):
         return False
 
     @property
-    def is_changed(self) -> bool:
-        """Determine whether the given entry has changed and not been saved."""
-        return self.hash != self._loaded_hash
+    def is_unsaved(self) -> bool:
+        """Determine whether the given entry has changed and not been saved.
+
+        By definition, entries without a path aren't saved.
+        Otherwise, see if the hash of the loaded data matches the current has. If it
+        doesn't the the contents of the data have changed.
+        """
+        if getattr(self, "path", None) is None:
+            return True
+        elif self.hash != self._loaded_hash:
+            return True
+        else:
+            return False
 
     @property
     def hash(self) -> str:
@@ -169,7 +179,20 @@ class Entry(ABC):
         """Return the shape of the data--i.e. the length along each data array
         dimension."""
         data = self.data
-        return data.shape() if hasattr(data, "shape") else (len(data),)
+        if hasattr(data, "shape"):
+            return data.shape()
+        elif hasattr(data, "__len__"):
+            return len(data)
+        else:
+            return ()
+
+    def reset_hash(self):
+        """Reset the loaded hash to the new contents of self.data.
+
+        This function is needed when data is freshly loaded from a file, or when
+        the data has been freshly saved to the file
+        """
+        self._loaded_hash = self.hash  # Reset the loaded hash
 
     def save(self):
         """Save the data to self.path
@@ -178,8 +201,17 @@ class Entry(ABC):
         -------
         saved
             Whether the file was saved
+
+        Raises
+        ------
+        FileNotFoundError
+            Raised if trying to save but the path could not be found.
         """
-        self._loaded_hash = self.hash  # Reset the loaded hash
+        if getattr(self, "path", None) is None:
+            raise FileNotFoundError(
+                f"Could not save entry of type "
+                f"'{self.__class__.__name__}' because no path is specified."
+            )
 
 
 class TextEntry(Entry):
@@ -224,10 +256,12 @@ class TextEntry(Entry):
 
     def save(self):
         """Overrides the parent method to save the text data to self.path"""
+        Entry.save(self)  # Checks whether a save can be conducted
+
         data = self.data
-        if self.is_changed and data:
+        if self.is_unsaved and data:
             self.path.write_text(data)
-            super().save()
+            self.reset_hash()
 
 
 class BinaryEntry(Entry):
@@ -272,10 +306,12 @@ class BinaryEntry(Entry):
 
     def save(self):
         """Overrides the parent method to save the text data to self.path"""
+        Entry.save(self)  # Checks whether a save can be conducted
+
         data = self.data
-        if self.is_changed and data:
+        if self.is_unsaved and data:
             self.path.write_bytes(data)
-            super().save()
+            self.reset_hash()
 
 
 class CsvEntry(TextEntry):
@@ -337,12 +373,17 @@ class CsvEntry(TextEntry):
     def shape(self) -> t.Tuple[int, int]:
         """Override parent method to give 2d shape in rows, columns"""
         data = self.data
-        return (len(data), len(data[0]) if data else 0)
+        if hasattr(data, "__len__") and len(data) > 0:
+            return (len(data), len(data[0]))
+        else:
+            return ()
 
     def save(self):
         """Overrides the parent method to save the text data to self.path"""
+        Entry.save(self)  # Check whether a save can be conducted
+
         data = self.data
-        if self.is_changed and data:
+        if self.is_unsaved and data:
             # Try to get a dialect. Default to 'excel' (csv) if a dialect cannot
             # be selected from the path
             try:
@@ -353,4 +394,4 @@ class CsvEntry(TextEntry):
             with open(self.path, "w") as f:
                 writer = csv.writer(f, dialect=dialect)
                 writer.writerows(data)
-            super().save()
+            self.reset_hash()

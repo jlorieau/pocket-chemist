@@ -5,7 +5,7 @@ import csv
 
 import pytest
 
-from xamin.project import TextEntry, BinaryEntry, CsvEntry
+from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry
 
 
 @pytest.fixture(params=["text", "binary", "csvfile"])
@@ -41,3 +41,9 @@ def entry(request, tmp_path) -> TextEntry:
 
     else:
         raise AssertionError("Unknown type")
+
+
+@pytest.fixture(params=[Entry, TextEntry, BinaryEntry, CsvEntry])
+def entry_cls(request) -> Entry:
+    """A listing of the Entry classes"""
+    return request.param
