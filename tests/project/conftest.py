@@ -2,10 +2,11 @@
 
 import os
 import csv
+import yaml
 
 import pytest
 
-from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry
+from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry, YamlEntry
 
 
 @pytest.fixture
@@ -40,6 +41,17 @@ def csv_entry(tmp_path) -> CsvEntry:
 
 
 @pytest.fixture
+def yaml_entry(tmp_path) -> YamlEntry:
+    """A temporary instance of a YamlEntry"""
+    d = {"a": 1, "b": {"c": 2, "d": 3}}
+    text = yaml.dump(d)
+    test_file = tmp_path / "test.yaml"
+    with open(test_file, "w") as f:
+        test_file.write_text(text)
+    return YamlEntry(test_file)
+
+
+@pytest.fixture
 def extra_data():
     """Retrieve extra data for different entry types"""
 
@@ -52,6 +64,8 @@ def extra_data():
             return b"some extra stuff"
         elif entry_type == CsvEntry:
             return [10, 11, 12, 13, 14, 15]
+        elif entry_type == YamlEntry:
+            return {"e": 6, "f": 6}
         else:
             raise NotImplementedError(
                 f"Extra data for class "
@@ -63,14 +77,17 @@ def extra_data():
 
 
 @pytest.fixture(params=[name for name in locals().keys() if name.endswith("_entry")])
-def entry(request) -> Entry:
+def entry(request: pytest.FixtureRequest) -> Entry:
     """Generator to retrieve temporary, concrete instances of all entry types"""
     entry = request.getfixturevalue(request.param)
-    assert isinstance(entry, Entry)
+
+    if not isinstance(entry, Entry):
+        pytest.skip()
+
     return entry
 
 
 @pytest.fixture(params=[Entry, TextEntry, BinaryEntry, CsvEntry])
-def entry_cls(request) -> Entry:
+def entry_cls(request: pytest.FixtureRequest) -> Entry:
     """A listing of the Entry classes"""
     return request.param

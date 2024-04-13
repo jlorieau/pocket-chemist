@@ -81,7 +81,9 @@ def test_is_unsaved(entry, extra_data):
     assert not entry.is_unsaved
 
     # Modify it and change that the text_entry has changed
-    entry.data = original_data + extra
+    entry.data = (
+        entry.data + extra if not isinstance(extra, dict) else entry.data | extra
+    )
     assert entry.is_unsaved
 
     # Reset it and the is_unsaved flag should change
@@ -102,7 +104,9 @@ def test_entry_save(entry, extra_data):
     assert entry.path.stat().st_mtime == start_mtime
 
     # Changing the data produces unsaved changes, which can be saved
-    entry.data = entry.data + extra
+    entry.data = (
+        entry.data + extra if not isinstance(extra, dict) else entry.data | extra
+    )
 
     entry.save()
     assert entry.path.stat().st_mtime >= start_mtime
