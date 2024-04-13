@@ -29,78 +29,23 @@ def test_entry_repr(entry):
 
 
 def test_entry_is_type(entry):
-    """Test the Entry.is_type class method."""
-    if isinstance(entry, TextEntry):
-        assert TextEntry.is_type(entry.path)
-        assert not BinaryEntry.is_type(entry.path)
-    elif isinstance(entry, BinaryEntry):
-        assert BinaryEntry.is_type(entry.path)
-        assert not TextEntry.is_type(entry.path)
+    """Test the Entry.is_type class methods."""
+    assert entry.__class__.is_type(entry.path)
 
 
 def test_entry_load(entry):
     """Test the Entry loading of a file"""
     assert len(entry.data) > 0
 
-    if isinstance(entry, CsvEntry):
-        assert isinstance(entry.data, list)
-        assert entry.shape == (len(entry.data), len(entry.data[0]))
-    elif isinstance(entry, TextEntry):
-        assert isinstance(entry.data, str)
-        assert entry.shape == (len(entry.data),)
-    elif isinstance(entry, BinaryEntry):
-        assert isinstance(entry.data, bytes)
-        assert entry.shape == (len(entry.data),)
-
-
-def test_entry_is_unsaved(entry):
-    """Test the Entry is_unsaved property"""
-    # Prepare extra data by type
-    if isinstance(entry, CsvEntry):
-        extra = [10, 11, 12, 13, 14, 15]
-    elif isinstance(entry, TextEntry):
-        extra = "some extra stuff"
-    elif isinstance(entry, BinaryEntry):
-        extra = b"some extra stuff"
-
-    # Data should not be changed before the data method loads it
-    assert not entry.is_unsaved
-
-    # Get the original data
-    original_data = entry.data
-    assert not entry.is_unsaved
-
-    # Modify it and change that the text_entry has changed
-    entry.data = original_data + extra
-    assert entry.is_unsaved
-
-    # Reset it and the is_unsaved flag should change
-    entry.data = original_data
-    assert not entry.is_unsaved
-
-
-def test_entry_save(entry):
-    """Test the Entry save method"""
-    # Prepare extra data by type
-    if isinstance(entry, CsvEntry):
-        extra = [10, 11, 12, 13, 14, 15]
-    elif isinstance(entry, TextEntry):
-        extra = "some extra stuff"
-    elif isinstance(entry, BinaryEntry):
-        extra = b"some extra stuff"
-
-    # Get the current mtime of the file to test when it is modified
-    start_mtime = entry.path.stat().st_mtime
-
-    # Load the data without unsaved changes should not modify the file
-    entry.save()
-    assert entry.path.stat().st_mtime == start_mtime
-
-    # Changing the data produces unsaved changes, which can be saved
-    entry.data = entry.data + extra
-
-    entry.save()
-    assert entry.path.stat().st_mtime >= start_mtime
+    shape = entry.shape
+    if len(shape) == 2:
+        # 2-dimensional shape
+        assert shape == (len(entry.data), len(entry.data[0]))
+    elif len(shape) == 1:
+        # 1-dimensional shape
+        assert shape == (len(entry.data),)
+    else:
+        raise NotImplementedError("Other data shapes are not yet implemented")
 
 
 def test_entry_no_path(entry_cls):
@@ -121,3 +66,43 @@ def test_entry_no_path(entry_cls):
     # Trying to save raises an exception
     with pytest.raises(FileNotFoundError):
         entry.save()
+
+
+def test_is_unsaved(entry, extra_data):
+    """Test the Entry is_unsaved property"""
+    # Load the extra data for entry
+    extra = extra_data(entry)
+
+    # Data should not be changed before the data method loads it
+    assert not entry.is_unsaved
+
+    # Get the original data
+    original_data = entry.data
+    assert not entry.is_unsaved
+
+    # Modify it and change that the text_entry has changed
+    entry.data = original_data + extra
+    assert entry.is_unsaved
+
+    # Reset it and the is_unsaved flag should change
+    entry.data = original_data
+    assert not entry.is_unsaved
+
+
+def test_entry_save(entry, extra_data):
+    """Test the Entry save method"""
+    # Load the extra data for entry
+    extra = extra_data(entry)
+
+    # Get the current mtime of the file to test when it is modified
+    start_mtime = entry.path.stat().st_mtime
+
+    # Load the data without unsaved changes should not modify the file
+    entry.save()
+    assert entry.path.stat().st_mtime == start_mtime
+
+    # Changing the data produces unsaved changes, which can be saved
+    entry.data = entry.data + extra
+
+    entry.save()
+    assert entry.path.stat().st_mtime >= start_mtime

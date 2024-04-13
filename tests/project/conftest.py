@@ -39,9 +39,32 @@ def csv_entry(tmp_path) -> CsvEntry:
     return CsvEntry(test_file)
 
 
+@pytest.fixture
+def extra_data():
+    """Retrieve extra data for different entry types"""
+
+    def _extra(entry):
+        entry_type = type(entry)
+
+        if entry_type == TextEntry:
+            return "some extra stuff"
+        elif entry_type == BinaryEntry:
+            return b"some extra stuff"
+        elif entry_type == CsvEntry:
+            return [10, 11, 12, 13, 14, 15]
+        else:
+            raise NotImplementedError(
+                f"Extra data for class "
+                f"'{entry.__class__.__name__}' is not yet implement"
+            )
+
+    _extra.__doc__ = extra_data.__doc__
+    return _extra
+
+
 @pytest.fixture(params=[name for name in locals().keys() if name.endswith("_entry")])
-def entry(request):
-    """Generator to retrieve temporary instances of all entry types"""
+def entry(request) -> Entry:
+    """Generator to retrieve temporary, concrete instances of all entry types"""
     entry = request.getfixturevalue(request.param)
     assert isinstance(entry, Entry)
     return entry
