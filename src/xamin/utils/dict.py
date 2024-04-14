@@ -7,7 +7,9 @@ import typing as t
 __all__ = ("recursive_update",)
 
 
-def recursive_update(d: t.Mapping, u: t.Mapping, excludes: t.Tuple[str] = ()):
+def recursive_update(
+    d: t.Mapping, u: t.Mapping, excludes: t.Tuple[str] = ()
+) -> t.Mapping:
     """Recursively update mutables in dict 'd' with updates 'u'.
 
     d
