@@ -77,5 +77,5 @@ class YamlEntry(TextEntry):
         data = self.data
         if self.is_unsaved and data:
             with open(self.path, "w") as f:
-                f.write_text(yaml.dump(data))
+                f.write(yaml.dump(data))
             self.reset_hash()
