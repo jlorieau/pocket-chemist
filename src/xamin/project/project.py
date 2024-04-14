@@ -25,9 +25,6 @@ class ProjectException(Exception):
     """Exception raised while processing a project"""
 
 
-EntriesType = t.OrderedDict[str, t.Union[Entry, t.OrderedDict]]
-
-
 class Project(YamlEntry):
     """A project containin data entries"""
 
@@ -43,9 +40,9 @@ class Project(YamlEntry):
     #: A dict of data entries in this project. The following fields (keys) are included:
     #:   - metadata: The project's metadata
     #:   - files: The file entries that are part of the project
-    _data: EntriesType
+    _data: t.OrderedDict[str, t.Union[Entry, t.OrderedDict]]
 
-    def __init__(self, *args, entries: t.Optional[EntriesType] = None, **kwargs):
+    def __init__(self, *args, entries: t.Iterable[Entry] = (), **kwargs):
         # Populate an empty path, if a path wasn't specified
         if len(args) == 0 and "path" not in kwargs:
             super().__init__(path=None, *args, **kwargs)
@@ -58,8 +55,8 @@ class Project(YamlEntry):
         # Set the attributes
         self.meta["version"] = __version__
 
-        if entries is not None:
-            recursive_update(self.entries, entries)
+        # populate initial entries
+        self.add_entries(*entries)
 
     @classmethod
     def is_type(cls, path: Path, hint: HintType = None) -> bool:
@@ -154,8 +151,29 @@ class Project(YamlEntry):
             # Name and place the entry in the entries dict
             self.entries[str(name)] = entry
 
-    def add_files(self, *args: t.Tuple[t.Union[str, Path]]):
-        """Add entry files to a project"""
+    def add_entries(self, *entries: t.Tuple[t.Union[Entry, t.OrderedDict]]):
+        """Add entries to a project"""
+        for entry in entries:
+            # It has to be an entry
+            if not isinstance(entry, t.Union[Entry, t.OrderedDict]):
+                continue
+
+            if getattr(entry, "path", None) is not None:
+                # Use the path as a name, if available
+                self.entries[str(entry.path.absolute())] = entry
+            else:
+                # Otherwise choose a generic name
+                num = 0
+                while self.default_name.format(num=num) in self.entries:
+                    num += 1
+                name = self.default_name.format(num=num)
+                self.entries[name] = entry
+
+        # Update the project names
+        self.assign_unique_names()
+
+    def add_files(self, *paths: t.Tuple[t.Union[str, Path]]):
+        """Add files and create new entries to a project"""
         # Find the paths for entries that are already registered
         existing_paths = {
             e.path.absolute()
@@ -166,14 +184,14 @@ class Project(YamlEntry):
         # Convert the arguments to paths and find only new paths
         paths = [
             Path(a)
-            for a in args
+            for a in paths
             if (isinstance(a, str) or isinstance(a, Path))
             and Path(a).absolute() not in existing_paths
         ]
 
         # For each path, find the most specific Entry type (highest hierarchy level),
         # and use it to create an entry
-        for num, path in enumerate(paths, 1):
+        for path in paths:
             hint = Entry.get_hint(path)  # cache the hint
 
             cls = Entry.guess_type(path, hint)
@@ -186,6 +204,3 @@ class Project(YamlEntry):
 
         # Update the project names
         self.assign_unique_names()
-
-    # def save(self):
-    #     """Save a project listing"""
