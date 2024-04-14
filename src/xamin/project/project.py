@@ -7,10 +7,15 @@ from weakref import ref
 from pathlib import Path
 from dataclasses import dataclass
 from collections import OrderedDict
+from os import path
 
 from loguru import logger
+from thatway import Setting
 
 from .entry import Entry, HintType
+from ..utils.dict import recursive_update
+from ..utils.path import is_root
+from .. import __version__
 
 __all__ = ("Project",)
 
@@ -19,18 +24,26 @@ class ProjectException(Exception):
     """Exception raised while processing a project"""
 
 
-EntriesType = t.OrderedDict[str, Entry]
+EntriesType = t.OrderedDict[str, t.Union[Entry, t.OrderedDict]]
 
 
 @dataclass(init=False)
 class Project(Entry):
     """A project containin data entries"""
 
+    # Settings
+    default_name = Setting(
+        "<unsaved> ({num})",
+        desc="Default name pattern to use for entries without a path",
+    )
+
     #: All of the currently opened projects
     _opened_projects = []
 
-    #: A list of data entries in this project
-    entries: EntriesType
+    #: A dict of data entries in this project. The following fields (keys) are included:
+    #:   - metadata: The project's metadata
+    #:   - files: The file entries that are part of the project
+    _data: EntriesType
 
     def __init__(self, *args, entries: t.Optional[EntriesType] = None, **kwargs):
         # Populate an empty path, if a path wasn't specified
@@ -39,13 +52,14 @@ class Project(Entry):
         else:
             super().__init__(*args, **kwargs)
 
-        # Add self as a weakref to the listing opened projects
+        # Add self as a weakref to the listing opened projects.
         Project._opened_projects.append(ref(self))
 
         # Set the attributes
-        self.entries = OrderedDict()
+        self.meta["version"] = __version__
+
         if entries is not None:
-            self.entries.update(entries)
+            recursive_update(self.entries, entries)
 
     @classmethod
     def is_type(cls, path: Path, hint: HintType = None) -> bool:
@@ -58,39 +72,73 @@ class Project(Entry):
         projects = [p() for p in cls._opened_projects]
         return [p for p in projects if p is not None]  # Remove invalid weakrefs
 
+    @property
+    def data(self) -> t.OrderedDict:
+        """The data dict for the project"""
+        if getattr(self, "_data", None) is None:
+            self._data = t.OrderedDict()
+        return self._data
+
+    @property
+    def meta(self) -> t.OrderedDict:
+        """The metadata dict for the project"""
+        return self.data.setdefault("meta", t.OrderedDict())
+
+    @property
+    def entries(self) -> t.OrderedDict:
+        """The Entry instances for the project"""
+        return self.data.setdefault("entries", t.OrderedDict())
+
     def assign_unique_names(self):
         """Assign unique names to this project's entries."""
-        # Find all of the absolute paths of entries
-        parts = [
-            entry.path.parent.absolute().parts
-            for entry in self.entries.values()
-            if getattr(entry, "path", None) is not None
-        ]
-        parts_t = map(set, zip(*parts))  # transpose
+        entries = list(self.entries.values())
 
-        # Find up to which part the paths are all common
-        common_parts = []
-        for s in parts_t:
-            if len(s) > 1:
-                break
-            common_parts.append(s.pop())
+        # Find the common path for all entry paths
+        paths = [e.path for e in entries if getattr(e, "path", None) is not None]
+        try:
+            common = Path(path.commonpath(paths))
+        except ValueError:
+            common = None
 
-        # Find the names from the common parts
-        common_path = Path(*common_parts) if len(common_parts) > 1 else None
-        current_entries = list(self.entries.values())
+        # Clear the current entries so that their names (keys) can be re-assigned
         self.entries.clear()
 
-        for i, entry in enumerate(current_entries, 1):
-
-            # Create a name from the common_path, if possible, or create a dummy
+        # Find the names (dict keys) from the common path
+        for num, entry in enumerate(entries, 1):
+            # Create a name from the common path, if possible, or create a dummy
             # unknown name
-            if not hasattr(entry, "path") or entry.path is None:
-                name = f"unknown ({i})"
-            elif common_path is not None:
-                name = entry.path.relative_to(common_path)
+            if getattr(entry, "path", None) is None:
+                # No path, give a default name
+                name = self.default_name.format(num=num)
+
+            elif common is not None:
+                # A common base path was found
+
+                if common.absolute() == entry.path.absolute():
+                    # The common path is the same as the entry's path. This happens,
+                    # for example, when only 1 entry with a entry.path is available.
+                    # In this case, give the filename only.
+                    name = entry.path.name
+                elif is_root(common):
+                    # The common path is the root path, so removing the common
+                    # path is not possible
+                    name = entry.path
+
+                else:
+                    # try to construct the name by removing the common path from
+                    # the entry's entry.path
+                    try:
+                        name = entry.path.absolute().relative_to(
+                            common.absolute(), walk_up=True
+                        )
+                    except ValueError:
+                        name = entry.path
+
             else:
+                # Otherwise just use the path as a name
                 name = entry.path
 
+            # Name and place the entry in the entries dict
             self.entries[str(name)] = entry
 
     def add_files(self, *args: t.Tuple[t.Union[str, Path]]):
@@ -98,7 +146,7 @@ class Project(Entry):
         # Convert the arguments to paths
         existing_paths = {
             e.path.absolute()
-            for e in self.entries.values()
+            for e in self._data["files"].values()
             if hasattr(self, "path") and self.path is not None
         }
         paths = [
@@ -128,7 +176,10 @@ class Project(Entry):
                 entries[str(path.absolute())] = best_cls(path=path)
 
         # Add the new entries to this project
-        self.entries.update(entries)
+        recursive_update(self._data["files"], entries)
 
         # Update the project names
         self.assign_unique_names()
+
+    # def save(self):
+    #     """Save a project listing"""

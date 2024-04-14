@@ -6,6 +6,15 @@ from collections import OrderedDict
 from xamin.project import Project, TextEntry
 
 
+def test_project_setup():
+    """Test the instantiation and setup of new projects"""
+    project = Project()
+
+    # Current program version
+    assert "version" in project.meta
+    assert isinstance(project.meta["version"], str)
+
+
 def test_project_assign_unique_names():
     """Test the Project.assign_unique_names method"""
     # Create some test entries
@@ -52,7 +61,7 @@ def test_project_assign_unique_names():
 
     project.assign_unique_names()
     a = str(Path("file1"))
-    b = "unknown (2)"
+    b = "<unsaved> (2)"
     assert list(project.entries.keys()) == [a, b]
 
 
