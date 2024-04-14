@@ -25,7 +25,10 @@ def test_entry_depth():
 
 def test_entry_repr(entry):
     """Test the Entry __repr__ method."""
-    assert repr(entry) == f"{entry.__class__.__name__}(path='{entry.path}')"
+    if getattr(entry, "path", None) is not None:
+        assert repr(entry) == f"{entry.__class__.__name__}(path='{entry.path}')"
+    else:
+        assert repr(entry) == f"{entry.__class__.__name__}(path=None)"
 
 
 def test_entry_is_type(entry):
