@@ -33,6 +33,16 @@ def test_entry_is_type(entry):
     assert entry.__class__.is_type(entry.path)
 
 
+def test_entry_guess_type(entry):
+    """Test the Entry.guess_type class method"""
+    # For all entry types, the guess_type should match the entry's original class
+    guessed_cls = entry.guess_type(entry.path)
+    assert guessed_cls == type(entry)
+
+    # None as a parameter won't work
+    assert entry.guess_type(None) is None
+
+
 def test_entry_load(entry):
     """Test the Entry loading of a file"""
     assert len(entry.data) > 0

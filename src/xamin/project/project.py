@@ -160,23 +160,18 @@ class Project(Entry):
             and Path(a).absolute() not in existing_paths
         ]
 
-        # Get the subclasses and their hierarchy level
-        subclasses = Entry.subclasses()
-
         # For each path, find the most specific Entry type (highest hierarchy level),
         # and use it to create an entry
-        for path in paths:
-            highest_hierarchy = 0
-            best_cls = None
-            hint = Entry.get_hint(path)
+        for num, path in enumerate(paths, 1):
+            hint = Entry.get_hint(path)  # cache the hint
 
-            for hierarchy, cls in subclasses:
-                if hierarchy > highest_hierarchy and cls.is_type(path=path, hint=hint):
-                    best_cls = cls
+            cls = Entry.guess_type(path, hint)
 
-            if best_cls is not None:
-                logger.debug(f"Found best class '{best_cls}' for path: {path}")
-                self.entries[str(path.absolute())] = best_cls(path=path)
+            if cls is None:
+                logger.error(f"Could not find a file entry type for '{path}'")
+                continue
+
+            self.entries[str(path.absolute())] = cls(path=path)
 
         # Update the project names
         self.assign_unique_names()

@@ -125,6 +125,51 @@ class Entry(ABC):
         """
         return False
 
+    @classmethod
+    def guess_type(
+        cls, path: Path, hint: HintType = None
+    ) -> t.Union[t.Type["Entry"], None]:
+        """Try to guess the correct Entry class from the given path and (optional)
+        hint.
+
+        Paramters
+        ---------
+        path
+            The path to the file whose contents should be guessed
+        hint
+            Information of type HintType that can be used to guide the guessing
+
+        Returns
+        -------
+        entry_type
+            The best entry class for the given arguments, or
+            None if a best entry class could not be found.
+        """
+        # Must be a path type, if no hint is specified
+        if isinstance(path, Path) or isinstance(path, str):
+            path = Path(path)
+        elif hint is None:
+            # Can't figure out the type without a valid type or a valid hint
+            return None
+
+        # Get the hint, if it wasn't specified
+        hint = hint if hint is not None else cls.get_hint(path)
+
+        # Find the best class from those with the highest class hierarchy level
+        # i.e. the more subclassed, the more specific is a type
+        highest_hierarchy = 0
+        best_cls = None
+
+        for hierarchy, cls in cls.subclasses():
+            if hierarchy > highest_hierarchy and cls.is_type(path=path, hint=hint):
+                best_cls = cls
+
+        if best_cls is not None:
+            logger.debug(f"Found best Entry class '{best_cls}' for path: {path}")
+            return best_cls
+        else:
+            return None
+
     @property
     def is_unsaved(self) -> bool:
         """Determine whether the given entry has changed and not been saved.
