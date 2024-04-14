@@ -121,7 +121,9 @@ class Project(Entry):
                     name = entry.path.name
                 elif is_root(common):
                     # The common path is the root path, so removing the common
-                    # path is not possible
+                    # path is not desirable, as it will remove the root from
+                    # an absolute path
+                    # e.g.: /etc/http.conf -> etc/http.conf
                     name = entry.path
 
                 else:
@@ -143,12 +145,14 @@ class Project(Entry):
 
     def add_files(self, *args: t.Tuple[t.Union[str, Path]]):
         """Add entry files to a project"""
-        # Convert the arguments to paths
+        # Find the paths for entries that are already registered
         existing_paths = {
             e.path.absolute()
-            for e in self._data["files"].values()
-            if hasattr(self, "path") and self.path is not None
+            for e in self.entries.values()
+            if getattr(self, "path", None) is not None
         }
+
+        # Convert the arguments to paths and find only new paths
         paths = [
             Path(a)
             for a in args
@@ -161,7 +165,6 @@ class Project(Entry):
 
         # For each path, find the most specific Entry type (highest hierarchy level),
         # and use it to create an entry
-        entries = OrderedDict()
         for path in paths:
             highest_hierarchy = 0
             best_cls = None
@@ -173,10 +176,7 @@ class Project(Entry):
 
             if best_cls is not None:
                 logger.debug(f"Found best class '{best_cls}' for path: {path}")
-                entries[str(path.absolute())] = best_cls(path=path)
-
-        # Add the new entries to this project
-        recursive_update(self._data["files"], entries)
+                self.entries[str(path.absolute())] = best_cls(path=path)
 
         # Update the project names
         self.assign_unique_names()
