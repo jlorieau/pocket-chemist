@@ -3,9 +3,9 @@ A project containing data entries
 """
 
 import typing as t
+import re
 from weakref import ref
 from pathlib import Path
-from dataclasses import dataclass
 from collections import OrderedDict
 from os import path
 
@@ -13,6 +13,7 @@ from loguru import logger
 from thatway import Setting
 
 from .entry import Entry, HintType
+from .yaml_entry import YamlEntry
 from ..utils.dict import recursive_update
 from ..utils.path import is_root
 from .. import __version__
@@ -27,8 +28,7 @@ class ProjectException(Exception):
 EntriesType = t.OrderedDict[str, t.Union[Entry, t.OrderedDict]]
 
 
-@dataclass(init=False)
-class Project(Entry):
+class Project(YamlEntry):
     """A project containin data entries"""
 
     # Settings
@@ -64,7 +64,18 @@ class Project(Entry):
     @classmethod
     def is_type(cls, path: Path, hint: HintType = None) -> bool:
         """Override parent class method"""
-        return False
+        hint = hint if hint is not None else cls.get_hint(path)
+
+        # Check that it matche's the parent's entry type
+        if not super().is_type(path, hint):
+            return False
+
+        # A project file should always start with a "meta" entry and a "version"
+        # subentry. e.g.
+        # meta:
+        #   version: 0.6.3
+        stripped = re.sub(r"#.*", "", hint)  # Remove comments
+        return re.match(r"\s*meta\:\s*version\:", stripped, re.MULTILINE) is not None
 
     @classmethod
     def opened(cls) -> t.List["Project"]:
@@ -76,18 +87,18 @@ class Project(Entry):
     def data(self) -> t.OrderedDict:
         """The data dict for the project"""
         if getattr(self, "_data", None) is None:
-            self._data = t.OrderedDict()
+            self._data = OrderedDict()
         return self._data
 
     @property
     def meta(self) -> t.OrderedDict:
         """The metadata dict for the project"""
-        return self.data.setdefault("meta", t.OrderedDict())
+        return self.data.setdefault("meta", OrderedDict())
 
     @property
     def entries(self) -> t.OrderedDict:
         """The Entry instances for the project"""
-        return self.data.setdefault("entries", t.OrderedDict())
+        return self.data.setdefault("entries", OrderedDict())
 
     def assign_unique_names(self):
         """Assign unique names to this project's entries."""
