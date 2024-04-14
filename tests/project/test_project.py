@@ -77,6 +77,10 @@ def test_project_add_entries(yaml_entry, csv_entry, text_entry):
     assert project.entries["test.csv"] == csv_entry
     assert project.entries["test.txt"] == text_entry
 
+    # Readding an entry doesn't create a new entry
+    project.add_entries(yaml_entry)
+    assert len(project.entries) == 3
+
 
 def test_project_add_files(entry):
     """Test the project.add_files method"""

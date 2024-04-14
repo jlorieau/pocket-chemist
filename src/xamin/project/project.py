@@ -98,7 +98,10 @@ class Project(YamlEntry):
         return self.data.setdefault("entries", OrderedDict())
 
     def assign_unique_names(self):
-        """Assign unique names to this project's entries."""
+        """Assign unique names to this project's entries.
+
+        This function will also remove duplicate entries.
+        """
         entries = list(self.entries.values())
 
         # Find the common path for all entry paths
