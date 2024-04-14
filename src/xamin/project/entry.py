@@ -44,8 +44,11 @@ class Entry(ABC):
     def __repr__(self):
         """The string representation for this class"""
         cls_name = self.__class__.__name__
-        path = str(getattr(self, "path", None))
-        return f"{cls_name}(path='{path}')"
+        if getattr(self, "path", None) is not None:
+            name = f"'{self.path}'"
+        else:
+            name = str(None)
+        return f"{cls_name}(path={name})"
 
     @staticmethod
     def subclasses() -> t.List[t.Tuple[int, "Entry"]]:
