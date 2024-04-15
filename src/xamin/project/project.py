@@ -5,10 +5,11 @@ A project containing data entries
 import typing as t
 import re
 from weakref import ref
-from pathlib import Path
+from pathlib import Path, PosixPath, WindowsPath
 from collections import OrderedDict
 from os import path
 
+import yaml
 from loguru import logger
 from thatway import Setting
 
@@ -18,7 +19,7 @@ from ..utils.dict import recursive_update
 from ..utils.path import is_root
 from .. import __version__
 
-__all__ = ("Project",)
+__all__ = ("Project", "get_dumper", "get_loader")
 
 
 class ProjectException(Exception):
@@ -207,3 +208,91 @@ class Project(YamlEntry):
 
         # Update the project names
         self.assign_unique_names()
+
+
+## YAML constructors and representers for YAML loaders and dumpers
+
+
+def constructor_factory(entry_cls: t.Type[Entry]):
+    """A YAML deserializer (loader) function factor to create Entry instances"""
+
+    def constructor(
+        loader: yaml.SafeLoader, node: yaml.nodes.MappingNode
+    ) -> t.Type[Entry]:
+        # Process the arguments (deep parses sub-elements)
+        mapping = loader.construct_mapping(node, deep=True)
+
+        # Convert path parts into a path object (if available)
+        mapping["path"] = Path(*mapping["path"]) if "path" in mapping else None
+
+        # Create the entry instance
+        return entry_cls(**mapping)
+
+    constructor.__doc__ = representer_factory.__doc__.replace(
+        "Entry", entry_cls.__name__
+    )
+    return constructor
+
+
+def representer_factory(entry_cls: t.Type[Entry], rel_path: Path):
+    """A YAML serializer (data dumper) function factory for Entry instances."""
+
+    def representer(dumper: yaml.SafeDumper, entry: Entry) -> yaml.nodes.MappingNode:
+        # Format the path.
+        if getattr(entry, "path", None) is None:
+            # No path specified for the entry.
+            path = None
+        else:
+            try:
+                # Try to get the relative path, if possible.
+                path = entry.path.relative_to(rel_path)
+            except ValueError:
+                # Otherwise just use the absolute path
+                path = entry.path.absolute()
+
+        return dumper.represent_mapping(
+            f"!{entry_cls.__name__}",
+            {
+                "path": path,
+            },
+        )
+
+    representer.__doc__ = representer_factory.__doc__.replace(
+        "Entry", entry_cls.__name__
+    )
+    return representer
+
+
+def path_representer(dumper: yaml.SafeDumper, path: Path) -> yaml.nodes.MappingNode:
+    """A YAML representer for pathlib.Path objects"""
+    return dumper.represent_list(path.parts)
+
+
+## YAML loader and dumper
+
+
+def get_loader():
+    """Add constructors to a YAML deserializer (loader)"""
+    safe_loader = yaml.SafeLoader
+
+    # Use the constructor_factor to create entry constructors
+    for _, entry_cls in Entry.subclasses():
+        safe_loader.add_constructor(
+            f"!{entry_cls.__name__}", constructor_factory(entry_cls)
+        )
+
+    return safe_loader
+
+
+def get_dumper(rel_path: Path):
+    """Add representers to a YAML serializer (dumper)"""
+    safe_dumper = yaml.SafeDumper
+
+    # Use the representer_factory to create entry representers
+    for _, entry_cls in Entry.subclasses():
+        safe_dumper.add_representer(entry_cls, representer_factory(entry_cls, rel_path))
+
+    # Add a representer for pathlib.Path objects
+    for cls in (Path, PosixPath, WindowsPath):
+        safe_dumper.add_representer(cls, path_representer)
+    return safe_dumper

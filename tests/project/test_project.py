@@ -1,9 +1,10 @@
 """Tests for Project classes"""
 
+import yaml
 from pathlib import Path
 from collections import OrderedDict
 
-from xamin.project import Project, TextEntry
+from xamin.project import Project, TextEntry, get_loader, get_dumper
 
 
 def test_project_setup():
@@ -95,3 +96,24 @@ def test_project_add_files(entry):
     assert type(project_entry) == type(entry)
     assert project_entry.path == entry.path
     assert project_entry.data == entry.data
+
+
+def test_project_yaml_loader_entry(entry):
+    """Test the Yaml loader for entries"""
+    text = f"!{entry.__class__.__name__}\npath:\n- {entry.path.name}\n"
+
+    # Generate python from yaml
+    loader = get_loader()
+    load = yaml.load(text, Loader=loader)
+    assert entry.path.name == load.path.name
+    assert entry.__class__ == load.__class__
+
+
+def test_project_yaml_dumper_entry(entry):
+    """Test the Yaml dumper for entries"""
+    path = entry.path
+
+    # Generate yaml
+    dumper = get_dumper(rel_path=path.parent)
+    text = yaml.dump(entry, Dumper=dumper)
+    assert text == (f"!{entry.__class__.__name__}\npath:\n- {path.name}\n")
