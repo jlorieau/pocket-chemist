@@ -59,6 +59,20 @@ class Project(YamlEntry):
         # populate initial entries
         self.add_entries(entries)
 
+    @property
+    def _dumper(self) -> yaml.Dumper:
+        """The YAML dumper to use for Project entries"""
+        if getattr(self, "path", None) is not None:
+            current_path = self.path.parent
+        else:
+            current_path = Path.cwd()
+        return get_dumper(rel_path=current_path)
+
+    @property
+    def _loader(self) -> yaml.Loader:
+        """The YAML loader to use for Project entries"""
+        return get_loader()
+
     @classmethod
     def is_type(cls, path: Path, hint: HintType = None) -> bool:
         """Override parent class method"""
@@ -216,6 +230,12 @@ class Project(YamlEntry):
 
         self.add_entries(*entries)
 
+    def save(self, data=None):
+        """Overrides the YamlEntry parent method to save the yaml data to self.path"""
+        # Instead of encoding self._data, encode the project entry itself, which
+        # has a special yaml representer (see below)
+        return super().save(data=self)
+
 
 ## YAML constructors and representers for YAML loaders and dumpers
 
@@ -259,15 +279,28 @@ def representer_factory(entry_cls: t.Type[Entry], rel_path: Path):
 
         return dumper.represent_mapping(
             f"!{entry_cls.__name__}",
-            {
-                "path": path,
-            },
+            {"path": path.parts},
         )
 
     representer.__doc__ = representer_factory.__doc__.replace(
         "Entry", entry_cls.__name__
     )
     return representer
+
+
+def project_representer(
+    dumper: yaml.SafeDumper, entry: Project
+) -> yaml.nodes.MappingNode:
+    """A YAML representer for Project entries"""
+
+    return dumper.represent_mapping(
+        f"!Project",
+        (
+            # Preserve the ordering of items rather than return an unordered dict
+            ("meta", tuple((k, v) for k, v in entry.meta.items())),
+            ("entries", tuple((k, v) for k, v in entry.entries.items())),
+        ),
+    )
 
 
 def path_representer(dumper: yaml.SafeDumper, path: Path) -> yaml.nodes.MappingNode:
@@ -295,8 +328,13 @@ def get_dumper(rel_path: Path):
     """Add representers to a YAML serializer (dumper)"""
     safe_dumper = yaml.SafeDumper
 
+    # Add a modified representer for projects
+    safe_dumper.add_representer(Project, project_representer)
+
     # Use the representer_factory to create entry representers
     for _, entry_cls in Entry.subclasses():
+        if entry_cls == Project:
+            continue
         safe_dumper.add_representer(entry_cls, representer_factory(entry_cls, rel_path))
 
     # Add a representer for pathlib.Path objects

@@ -20,6 +20,10 @@ class YamlEntry(TextEntry):
     # Locally cached data
     _data: YamlType
 
+    # The YAML loader and dumper to use for the YAMLEntry
+    _loader = yaml.SafeLoader
+    _dumper = yaml.SafeDumper
+
     @classmethod
     def is_type(cls, path: Path, hint: HintType = None) -> bool:
         """Overrides  parent class method to test whether path is a CsvEntry."""
@@ -38,7 +42,7 @@ class YamlEntry(TextEntry):
         # Read in the data, if needed
         if not self._data and self.path:
             with open(self.path, "r") as f:
-                data = yaml.safe_load(f)
+                data = yaml.load(f, Loader=self._loader)
 
                 if isinstance(data, dict):
                     self._data = OrderedDict(data)
@@ -70,12 +74,12 @@ class YamlEntry(TextEntry):
         else:
             return ()
 
-    def save(self):
-        """Overrides the parent method to save the text data to self.path"""
+    def save(self, data=None):
+        """Overrides the Entry parent method to save the text data to self.path"""
         Entry.save(self)  # Check whether a save can be conducted
 
-        data = self.data
+        data = data if data is not None else self.data
         if self.is_unsaved and data:
             with open(self.path, "w") as f:
-                f.write(yaml.dump(data))
+                f.write(yaml.dump(data, Dumper=self._dumper))
             self.reset_hash()

@@ -1,6 +1,7 @@
 """Tests for Project classes"""
 
 import yaml
+import re
 from pathlib import Path
 from collections import OrderedDict
 
@@ -116,4 +117,43 @@ def test_project_yaml_dumper_entry(entry):
     # Generate yaml
     dumper = get_dumper(rel_path=path.parent)
     text = yaml.dump(entry, Dumper=dumper)
-    assert text == (f"!{entry.__class__.__name__}\npath:\n- {path.name}\n")
+
+    # Check the yaml format
+    if entry.__class__ == Project:
+        match = """
+        !Project
+        meta:
+        - - version
+          - 0.1.10
+        entries:
+        - - test.yaml
+          - !YamlEntry
+            path:
+            - test.yaml
+        - - test.csv
+          - !CsvEntry
+            path:
+            - test.csv
+        - - test.txt
+          - !TextEntry
+            path:
+            - test.txt
+        - - test.bin
+          - !BinaryEntry
+            path:
+            - test.bin
+        """
+        # Strip indentation and leading newline
+        match = re.sub(r"^\s{8}", "", match, flags=re.MULTILINE).lstrip()
+
+        assert text == match
+    else:
+        match = f"""
+        !{entry.__class__.__name__}
+        path:
+        - {path.name}
+        """
+        # Strip indentation and leading newline
+        match = re.sub(r"^\s{8}", "", match, flags=re.MULTILINE).lstrip()
+
+        assert text == match
