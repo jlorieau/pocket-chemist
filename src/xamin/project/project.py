@@ -22,8 +22,8 @@ from .. import __version__
 __all__ = ("Project", "get_dumper", "get_loader")
 
 
-class ProjectException(Exception):
-    """Exception raised while processing a project"""
+# Types of entries that can be added to a project
+EntryAddedType = t.Union[Entry, t.Iterable[Entry], t.OrderedDict[str, Entry]]
 
 
 class Project(YamlEntry):
@@ -43,7 +43,7 @@ class Project(YamlEntry):
     #:   - files: The file entries that are part of the project
     _data: t.OrderedDict[str, t.Union[Entry, t.OrderedDict]]
 
-    def __init__(self, *args, entries: t.Iterable[Entry] = (), **kwargs):
+    def __init__(self, *args, entries: EntryAddedType = (), **kwargs):
         # Populate an empty path, if a path wasn't specified
         if len(args) == 0 and "path" not in kwargs:
             super().__init__(path=None, *args, **kwargs)
@@ -57,7 +57,7 @@ class Project(YamlEntry):
         self.meta["version"] = __version__
 
         # populate initial entries
-        self.add_entries(*entries)
+        self.add_entries(entries)
 
     @classmethod
     def is_type(cls, path: Path, hint: HintType = None) -> bool:
@@ -155,23 +155,30 @@ class Project(YamlEntry):
             # Name and place the entry in the entries dict
             self.entries[str(name)] = entry
 
-    def add_entries(self, *entries: t.Tuple[t.Union[Entry, t.OrderedDict]]):
+    def add_entries(self, *entries: EntryAddedType):
         """Add entries to a project"""
-        for entry in entries:
-            # It has to be an entry
-            if not isinstance(entry, t.Union[Entry, t.OrderedDict]):
-                continue
+        for value in entries:
+            if isinstance(value, t.Mapping):
+                # For OrderDict and other dicts
+                self.entries.update(value)
 
-            if getattr(entry, "path", None) is not None:
-                # Use the path as a name, if available
-                self.entries[str(entry.path.absolute())] = entry
             else:
-                # Otherwise choose a generic name
+                # Convert to a tuple, if needed
+                if not isinstance(value, t.Iterable):
+                    value = (value,)
+
+                # Add each entry from the 'value' iterable
+                name = lambda num: str(self.default_name.format(num=num))
                 num = 0
-                while self.default_name.format(num=num) in self.entries:
-                    num += 1
-                name = self.default_name.format(num=num)
-                self.entries[name] = entry
+                for entry in value:
+                    if not isinstance(entry, Entry):
+                        continue
+
+                    # Find a unique name
+                    while name(num=num) in self.entries:
+                        num += 1
+
+                    self.entries[name(num)] = entry
 
         # Update the project names
         self.assign_unique_names()
@@ -195,6 +202,7 @@ class Project(YamlEntry):
 
         # For each path, find the most specific Entry type (highest hierarchy level),
         # and use it to create an entry
+        entries = []
         for path in paths:
             hint = Entry.get_hint(path)  # cache the hint
 
@@ -204,10 +212,9 @@ class Project(YamlEntry):
                 logger.error(f"Could not find a file entry type for '{path}'")
                 continue
 
-            self.entries[str(path.absolute())] = cls(path=path)
+            entries.append(cls(path=path))
 
-        # Update the project names
-        self.assign_unique_names()
+        self.add_entries(*entries)
 
 
 ## YAML constructors and representers for YAML loaders and dumpers
