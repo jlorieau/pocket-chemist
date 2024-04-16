@@ -15,11 +15,11 @@ from thatway import Setting
 
 from .entry import Entry, HintType
 from .yaml_entry import YamlEntry
-from ..utils.dict import recursive_update
+from ..utils.dict import tuple_to_dict, recursive_update
 from ..utils.path import is_root
 from .. import __version__
 
-__all__ = ("Project", "get_dumper", "get_loader")
+__all__ = ("Project",)
 
 
 # Types of entries that can be added to a project
@@ -59,27 +59,33 @@ class Project(YamlEntry):
         # populate initial entries
         self.add_entries(entries)
 
-    @property
-    def _dumper(self) -> yaml.Dumper:
-        """The YAML dumper to use for Project entries"""
-        if getattr(self, "path", None) is not None:
-            current_path = self.path.parent
-        else:
-            current_path = Path.cwd()
-        return get_dumper(rel_path=current_path)
+    def __repr__(self):
+        """The string representation for this class"""
+        cls_name = self.__class__.__name__
+        name = f"'{self.path}'" if self.path is not None else "None"
+        entries_len = len(self.entries)
+        return f"{cls_name}(path={name}, entries={entries_len})"
 
-    @property
-    def _loader(self) -> yaml.Loader:
-        """The YAML loader to use for Project entries"""
-        return get_loader()
+    def __eq__(self, other):
+        """Test the equivalence of two projects"""
+        conditions = (
+            super().__eq__(other),  # parent are equal
+            self.meta == getattr(other, "meta", None),  # same meta
+            self.entries == getattr(other, "entries", None),  # same entries
+        )
+        return all(conditions)
 
     @classmethod
-    def is_type(cls, path: Path, hint: HintType = None) -> bool:
-        """Override parent class method"""
+    def is_type(
+        cls, path: Path, hint: HintType = None, loader: t.Optional[yaml.Loader] = None
+    ) -> bool:
+        """Overrides YamlEntry parent class method to use a custom loader for project
+        entries."""
         hint = hint if hint is not None else cls.get_hint(path)
+        loader = cls.get_loader()
 
         # Check that it matche's the parent's entry type
-        if not super().is_type(path, hint):
+        if not super().is_type(path, hint=hint, loader=loader):
             return False
 
         # A project file should always start with a "meta" entry and a "version"
@@ -240,104 +246,144 @@ class Project(YamlEntry):
 ## YAML constructors and representers for YAML loaders and dumpers
 
 
-def constructor_factory(entry_cls: t.Type[Entry]):
-    """A YAML deserializer (loader) function factor to create Entry instances"""
-
-    def constructor(
-        loader: yaml.SafeLoader, node: yaml.nodes.MappingNode
-    ) -> t.Type[Entry]:
-        # Process the arguments (deep parses sub-elements)
-        mapping = loader.construct_mapping(node, deep=True)
-
-        # Convert path parts into a path object (if available)
-        mapping["path"] = Path(*mapping["path"]) if "path" in mapping else None
-
-        # Create the entry instance
-        return entry_cls(**mapping)
-
-    constructor.__doc__ = representer_factory.__doc__.replace(
-        "Entry", entry_cls.__name__
+def path_representer(
+    dumper: yaml.BaseDumper, path: Path
+) -> t.Union[yaml.nodes.MappingNode, None]:
+    """Serializer (dumper) from yaml to a pathlib Path"""
+    return (
+        dumper.represent_sequence(f"!path", list(path.parts))
+        if path is not None
+        else None
     )
-    return constructor
 
 
-def representer_factory(entry_cls: t.Type[Entry], rel_path: Path):
-    """A YAML serializer (data dumper) function factory for Entry instances."""
-
-    def representer(dumper: yaml.SafeDumper, entry: Entry) -> yaml.nodes.MappingNode:
-        # Format the path.
-        if getattr(entry, "path", None) is None:
-            # No path specified for the entry.
-            path = None
-        else:
-            try:
-                # Try to get the relative path, if possible.
-                path = entry.path.relative_to(rel_path)
-            except ValueError:
-                # Otherwise just use the absolute path
-                path = entry.path.absolute()
-
-        return dumper.represent_mapping(
-            f"!{entry_cls.__name__}",
-            {"path": path.parts},
-        )
-
-    representer.__doc__ = representer_factory.__doc__.replace(
-        "Entry", entry_cls.__name__
-    )
-    return representer
+def path_constructor(loader: yaml.BaseLoader, node) -> t.Union[Path, None]:
+    """Deserializer (loader) for a pathlib Path from yaml"""
+    sequence = loader.construct_sequence(node, deep=True)
+    return Path(*sequence) if sequence is not None else None
 
 
 def project_representer(
-    dumper: yaml.SafeDumper, entry: Project
-) -> yaml.nodes.MappingNode:
-    """A YAML representer for Project entries"""
+    dumper: yaml.BaseDumper, project: Project, use_relpath: bool = True
+):
+    """Deserializer (loader) for a Project from yaml
 
-    return dumper.represent_mapping(
-        f"!Project",
-        (
-            # Preserve the ordering of items rather than return an unordered dict
-            ("meta", tuple((k, v) for k, v in entry.meta.items())),
-            ("entries", tuple((k, v) for k, v in entry.entries.items())),
-        ),
-    )
+    Parameters
+    ----------
+    dumper
+        The YAML dumper class to use to produce the YAML representation
+    project
+        The project entry instance to represent in YAML
+    use_relpath
+        If True (default), set the paths of entries relative to the project's parent
+        path (director).
+        If False, do not change the paths of entries
+    """
 
+    def project_mapping(project: Project, relpath: t.Optional[Path] = None) -> t.Tuple:
+        """Convert a project and its entries into and python mapping that can be
+        converted to a YAML mapping"""
+        # Prepare the entries, using the project's path
+        if relpath is None:
+            relpath = project.path.parent if project.path is not None else None
 
-def path_representer(dumper: yaml.SafeDumper, path: Path) -> yaml.nodes.MappingNode:
-    """A YAML representer for pathlib.Path objects"""
-    return dumper.represent_list(path.parts)
+        # Prepare a list of tuples for the entries
+        entries = []
+        for name, entry in project.entries.items():
+            # Get the state dict and other useful info
+            state = entry.__getstate__()
+            cls_name = entry.__class__.__name__
 
+            # Convert the path relative to this project's path
+            if (
+                use_relpath
+                and relpath is not None
+                and "path" in state
+                and isinstance(state["path"], Path)
+            ):
+                try:
+                    state["path"] = state["path"].relative_to(relpath)
+                except:
+                    pass
 
-## YAML loader and dumper
+            # Create a mapping of the state
+            if isinstance(entry, Project):
+                r = (name, (f"!{cls_name}", project_mapping(entry, relpath)))
+            else:
+                r = (name, (f"!{cls_name}", tuple(state.items())))
 
+            entries.append(r)
 
-def get_loader():
-    """Add constructors to a YAML deserializer (loader)"""
-    safe_loader = yaml.SafeLoader
-
-    # Use the constructor_factor to create entry constructors
-    for _, entry_cls in Entry.subclasses():
-        safe_loader.add_constructor(
-            f"!{entry_cls.__name__}", constructor_factory(entry_cls)
+        # Prepare the mapping as a list of (key, value) 2-ples
+        return (
+            f"!{project.__class__.__name__}",
+            (
+                ("meta", tuple((k, v) for k, v in project.meta.items())),
+                ("path", project.path),
+                ("entries", tuple(entries)),
+            ),
         )
 
-    return safe_loader
+    # Create a function that pull out python types and can be used recursively
+    return dumper.represent_mapping(*project_mapping(project))
 
 
-def get_dumper(rel_path: Path):
-    """Add representers to a YAML serializer (dumper)"""
-    safe_dumper = yaml.SafeDumper
+def project_representer_no_relpath(*args, **kwargs):
+    """A project_representer that does not change the paths of entries"""
+    return project_representer(*args, **kwargs, use_relpath=False)
 
-    # Add a modified representer for projects
-    safe_dumper.add_representer(Project, project_representer)
 
-    # Use the representer_factory to create entry representers
-    for _, entry_cls in Entry.subclasses():
-        if entry_cls == Project:
-            continue
-        safe_dumper.add_representer(entry_cls, representer_factory(entry_cls, rel_path))
+def project_constructor(loader: yaml.BaseLoader, node):
+    """Deserializer (loader) for a Project from yaml"""
 
-    # Add a representer for pathlib.Path objects
-    for cls in (Path, PosixPath, WindowsPath):
-        safe_dumper.add_representer(cls, path_representer)
-    return safe_dumper
+    # Get all the entry subclasses
+    sub_classes = {("!" + cls.__name__): cls for _, cls in Entry.subclasses()}
+
+    def construct_project(mapping: t.OrderedDict):
+        """Takes a project mapping and populates all the fields"""
+        entries_list = mapping.pop("entries", dict())
+
+        entries = OrderedDict()
+        for name, value in entries_list.items():
+            # The 'value' created by project_representer should create an ordered
+            # dict with the entry's class name as the key and the entry's data as the
+            # value.
+            if not isinstance(value, t.Mapping) or len(value) != 1:
+                logger.error(f"Could not parse the entry value: {value}")
+                continue
+
+            cls_name, data = value.popitem()
+
+            if cls_name == "!Project":
+                # Use this function recursively
+                entry = construct_project(value)
+
+            elif cls_name in sub_classes:
+                # Re-create the entry class
+                cls = sub_classes[cls_name]
+                path = data.pop("path", None)
+
+                entry = cls(path=path)
+                entry.__dict__.update(data)
+
+            else:
+                logger.error(
+                    f"Could not find entry class '{cls_name}' with value '{data}'"
+                )
+                continue
+
+            entries[name] = entry
+
+        # Retrieve the remaining project data
+        meta = mapping.pop("meta", dict())
+        path = mapping.pop("path", None)
+
+        # Reconstruct the project
+        project = Project(path=path)
+        project.meta.update(meta)
+        project.entries.update(entries)
+        return project
+
+    mapping = loader.construct_mapping(node, deep=True)
+    mapping = tuple_to_dict(mapping)  # Convert tree of tuples to tree of OrderedDict
+    return construct_project(mapping)

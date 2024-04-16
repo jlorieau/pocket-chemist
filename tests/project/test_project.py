@@ -2,10 +2,82 @@
 
 import yaml
 import re
+import pathlib
 from pathlib import Path
 from collections import OrderedDict
 
-from xamin.project import Project, TextEntry, get_loader, get_dumper
+from xamin.project import Project, TextEntry
+from xamin.project.project import (
+    path_constructor,
+    path_representer,
+    project_representer,
+    project_representer_no_relpath,
+    project_constructor,
+)
+
+
+def test_path_constructor_representer(tmp_path):
+    """Test the path_constructor and path_representer functions"""
+    path = Path(tmp_path)
+
+    # Setup the dumper
+    dumper = yaml.SafeDumper
+    dumper.add_representer(pathlib.PosixPath, path_representer)
+    dumper.add_representer(pathlib.WindowsPath, path_representer)
+
+    # Setup the loader
+    loader = yaml.SafeLoader
+    loader.add_constructor("!path", path_constructor)
+
+    # Convert to yaml text and check the dump
+    text = yaml.dump(path, Dumper=dumper)
+    assert text == "\n- ".join(("!path",) + path.parts) + "\n"
+
+    # Convert from yaml and check loaded path
+    load = yaml.load(text, Loader=loader)
+    assert path == load
+
+
+def test_project_constructor_representer(text_entry):
+    """Test the project_constructure and project_representer functions"""
+    # Create a project with entries
+    project_filepath = text_entry.path.with_suffix(".proj")
+    project = Project(path=project_filepath, entries=(text_entry,))
+
+    # Setup the dumper
+    dumper = yaml.SafeDumper
+    dumper.add_representer(pathlib.PosixPath, path_representer)  # Needed for paths
+    dumper.add_representer(pathlib.WindowsPath, path_representer)  # Needed for paths
+    dumper.add_representer(Project, project_representer_no_relpath)
+
+    # Setup the loader
+    loader = yaml.SafeLoader
+    loader.add_constructor("!path", path_constructor)
+    loader.add_constructor("!Project", project_constructor)
+
+    # Convert to yaml text and check the dump
+    text = yaml.dump(project, Dumper=dumper)
+
+    # Try to recreate the project from the yaml text
+    load = yaml.load(text, Loader=loader)
+    assert project == load
+
+    # Next, if we try to use the normal project_representer, then the path of
+    # entries are relative to the project path
+    dumper.add_representer(Project, project_representer)
+
+    # Convert to yaml text and check the dump
+    text = yaml.dump(project, Dumper=dumper)
+
+    # Try to recreate the project from the yaml text
+    load = yaml.load(text, Loader=loader)
+    assert project != load
+    assert project.path == load.path
+    assert project.meta == load.meta
+    assert len(project.entries) == len(load.entries)
+    assert [e.path for e in project.entries.values()] == [
+        load.path.parent / e.path for e in load.entries.values()
+    ]
 
 
 def test_project_setup():
@@ -104,8 +176,7 @@ def test_project_yaml_loader_entry(entry):
     text = f"!{entry.__class__.__name__}\npath:\n- {entry.path.name}\n"
 
     # Generate python from yaml
-    loader = get_loader()
-    load = yaml.load(text, Loader=loader)
+    load = yaml.load(text)
     assert entry.path.name == load.path.name
     assert entry.__class__ == load.__class__
 
@@ -115,8 +186,7 @@ def test_project_yaml_dumper_entry(entry):
     path = entry.path
 
     # Generate yaml
-    dumper = get_dumper(rel_path=path.parent)
-    text = yaml.dump(entry, Dumper=dumper)
+    text = yaml.dump(entry)
 
     # Check the yaml format
     if entry.__class__ == Project:
