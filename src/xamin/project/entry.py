@@ -44,10 +44,7 @@ class Entry(ABC):
     def __repr__(self):
         """The string representation for this class"""
         cls_name = self.__class__.__name__
-        if getattr(self, "path", None) is not None:
-            name = f"'{self.path}'"
-        else:
-            name = str(None)
+        name = f"'{self.path}'" if self.path is not None else "None"
         return f"{cls_name}(path={name})"
 
     def __getstate__(self) -> t.Dict:
@@ -60,9 +57,11 @@ class Entry(ABC):
 
     def __eq__(self, other):
         """Test the equivalence of two entries"""
-        return self.__class__ == other.__class__ and self.path == getattr(
-            other, "path", None
+        conditions = (
+            self.__class__ == other.__class__,  # same class
+            self.path == getattr(other, "path", None),  # same path
         )
+        return all(conditions)
 
     @staticmethod
     def subclasses() -> t.List[t.Tuple[int, "Entry"]]:
