@@ -20,21 +20,54 @@ class YamlEntry(TextEntry):
     # Locally cached data
     _data: YamlType
 
-    # The YAML loader and dumper to use for the YAMLEntry
-    _loader = yaml.SafeLoader
-    _dumper = yaml.SafeDumper
-
     @classmethod
-    def is_type(cls, path: Path, hint: HintType = None) -> bool:
-        """Overrides  parent class method to test whether path is a CsvEntry."""
+    def is_type(
+        cls, path: Path, hint: HintType = None, loader: t.Optional[yaml.Loader] = None
+    ) -> bool:
+        """Overrides TextEntry parent class method to test whether a path or hint
+        points to a YAML file.
+
+        Parameters
+        ----------
+        path
+            The path whose file should be tested whether it matches this type.
+            This is only checked to retrieve a hint, if one isn't given.
+        hint
+            The optional hint from the path to be used in the determination.
+        loader
+            The YAML loader to use in parsing the hint.
+
+        Returns
+        -------
+        is_type
+            True, if the file can be loaded as this Entry's type
+        """
         hint = hint if hint is not None else cls.get_hint(path)
+        loader = cls.get_loader()
+
+        # Yaml has to be text strings--not binary
+        if not isinstance(hint, str):
+            return False
 
         # Remove the last line of the hint
         block = "\n".join(hint.splitlines()[:-1])  #
 
         # Try parsing this block into an OrderedDict
-        data = yaml.safe_load(block)
+        try:
+            data = yaml.load(block, Loader=loader)
+        except yaml.constructor.ConstructorError:
+            return False
         return True if isinstance(data, dict) or isinstance(data, list) else False
+
+    @classmethod
+    def get_loader(cls) -> yaml.BaseLoader:
+        """Retrieve the loader to deserialize YAML"""
+        return yaml.SafeLoader
+
+    @classmethod
+    def get_dumper(cls) -> yaml.BaseDumper:
+        """Retrieve the dumper to serialize YAML"""
+        return yaml.SafeDumper
 
     @property
     def data(self) -> YamlType:
@@ -42,7 +75,7 @@ class YamlEntry(TextEntry):
         # Read in the data, if needed
         if not self._data and self.path:
             with open(self.path, "r") as f:
-                data = yaml.load(f, Loader=self._loader)
+                data = yaml.load(f, Loader=self.get_loader())
 
                 if isinstance(data, dict):
                     self._data = OrderedDict(data)
@@ -75,11 +108,12 @@ class YamlEntry(TextEntry):
             return ()
 
     def save(self, data=None):
-        """Overrides the Entry parent method to save the text data to self.path"""
+        """Overrides the Entry parent method to save the yaml data to self.path"""
         Entry.save(self)  # Check whether a save can be conducted
 
         data = data if data is not None else self.data
+
         if self.is_unsaved and data:
             with open(self.path, "w") as f:
-                f.write(yaml.dump(data, Dumper=self._dumper))
+                f.write(yaml.dump(data, Dumper=self.get_dumper()))
             self.reset_hash()
