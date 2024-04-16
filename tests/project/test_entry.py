@@ -31,6 +31,18 @@ def test_entry_repr(entry):
         assert repr(entry) == f"{entry.__class__.__name__}(path=None)"
 
 
+def test_entry_getstate(entry):
+    """Test the Entry __getstate__ method"""
+    assert entry.__getstate__() == {"path": entry.path.parts}
+
+
+def test_entry_setstate(entry):
+    """Test the Entry __setstate__ method"""
+    loaded = entry.__class__(path=None)
+    loaded.__setstate__({"path": entry.path.parts})
+    assert entry == loaded
+
+
 def test_entry_is_type(entry):
     """Test the Entry.is_type class methods."""
     assert entry.__class__.is_type(entry.path)

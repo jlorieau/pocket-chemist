@@ -50,6 +50,21 @@ class Entry(ABC):
             name = str(None)
         return f"{cls_name}(path={name})"
 
+    def __getstate__(self) -> t.Dict:
+        """Get a copy of the current state for serialization"""
+        return {"path": self.path.parts if self.path is not None else None}
+
+    def __setstate__(self, state):
+        """Set the state for the entry based on the given state copy"""
+        path = state.get("path", None)
+        self.path = Path(*path) if path is not None else None
+
+    def __eq__(self, other):
+        """Test the equivalence of two entries"""
+        return self.__class__ == other.__class__ and self.path == getattr(
+            other, "path", None
+        )
+
     @staticmethod
     def subclasses() -> t.List[t.Tuple[int, "Entry"]]:
         """Retrieve all subclasses of the Entry class as well as their class hierarchy
@@ -118,6 +133,7 @@ class Entry(ABC):
         ----------
         path
             The path whose file should be tested whether it matches this type.
+            This is only checked to retrieve a hint, if one isn't given.
         hint
             The optional hint from the path to be used in the determination.
 
