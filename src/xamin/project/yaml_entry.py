@@ -60,12 +60,12 @@ class YamlEntry(TextEntry):
         return True if isinstance(data, dict) or isinstance(data, list) else False
 
     @classmethod
-    def get_loader(cls) -> yaml.BaseLoader:
+    def get_loader(cls, *args, **kwargs) -> yaml.BaseLoader:
         """Retrieve the loader to deserialize YAML"""
         return yaml.SafeLoader
 
     @classmethod
-    def get_dumper(cls) -> yaml.BaseDumper:
+    def get_dumper(cls, *args, **kwargs) -> yaml.BaseDumper:
         """Retrieve the dumper to serialize YAML"""
         return yaml.SafeDumper
 
