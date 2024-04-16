@@ -33,13 +33,13 @@ def test_entry_repr(entry):
 
 def test_entry_getstate(entry):
     """Test the Entry __getstate__ method"""
-    assert entry.__getstate__() == {"path": entry.path.parts}
+    assert entry.__getstate__() == {"path": entry.path}
 
 
 def test_entry_setstate(entry):
     """Test the Entry __setstate__ method"""
     loaded = entry.__class__(path=None)
-    loaded.__setstate__({"path": entry.path.parts})
+    loaded.__setstate__({"path": entry.path})
     assert entry == loaded
 
 
