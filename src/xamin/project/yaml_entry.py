@@ -43,21 +43,26 @@ class YamlEntry(TextEntry):
             True, if the file can be loaded as this Entry's type
         """
         hint = hint if hint is not None else cls.get_hint(path)
-        loader = cls.get_loader()
-
+        loader = loader if loader is not None else cls.get_loader()
         # Yaml has to be text strings--not binary
         if not isinstance(hint, str):
             return False
 
         # Remove the last line of the hint
         block = "\n".join(hint.splitlines()[:-1])  #
-
         # Try parsing this block into an OrderedDict
         try:
             data = yaml.load(block, Loader=loader)
-        except yaml.constructor.ConstructorError:
+        except yaml.constructor.ConstructorError as e:
             return False
-        return True if isinstance(data, dict) or isinstance(data, list) else False
+
+        return (
+            True
+            if isinstance(data, t.Mapping)  # May be a mapping, like a dict
+            or isinstance(data, t.Iterable)  # May be an iterable, like a list
+            or isinstance(data, Entry)  # A Project entry may be produced
+            else False
+        )
 
     @classmethod
     def get_loader(cls, *args, **kwargs) -> yaml.BaseLoader:
