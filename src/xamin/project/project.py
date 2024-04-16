@@ -88,12 +88,36 @@ class Project(YamlEntry):
         if not super().is_type(path, hint=hint, loader=loader):
             return False
 
-        # A project file should always start with a "meta" entry and a "version"
+        # A project file should always start with a "!Project" tag followed by
+        # "meta" entry
         # subentry. e.g.
+        # !Project
         # meta:
-        #   version: 0.6.3
         stripped = re.sub(r"#.*", "", hint)  # Remove comments
-        return re.match(r"\s*meta\:\s*version\:", stripped, re.MULTILINE) is not None
+        return stripped.startswith("!Project\nmeta:")
+
+    @classmethod
+    def get_loader(cls, *args, **kwargs) -> yaml.BaseLoader:
+        """Retrieve the loader to deserialize YAML"""
+        loader = super().get_loader(*args, **kwargs)
+
+        # Add custom constructors to loader (see below)
+        loader.add_constructor("!path", path_constructor)
+        loader.add_constructor("!Project", project_constructor)
+
+        return loader
+
+    @classmethod
+    def get_dumper(cls, *args, **kwargs) -> yaml.BaseDumper:
+        """Retrieve the dumper to serialize YAML"""
+        dumper = super().get_dumper(*args, **kwargs)
+
+        # Add custom representers to loader (see below)
+        dumper.add_representer(PosixPath, path_representer)  # Needed for paths
+        dumper.add_representer(WindowsPath, path_representer)  # Needed for paths
+        dumper.add_representer(Project, project_representer_no_relpath)
+
+        return dumper
 
     @classmethod
     def opened(cls) -> t.List["Project"]:
@@ -246,9 +270,7 @@ class Project(YamlEntry):
 ## YAML constructors and representers for YAML loaders and dumpers
 
 
-def path_representer(
-    dumper: yaml.BaseDumper, path: Path
-) -> t.Union[yaml.nodes.MappingNode, None]:
+def path_representer(dumper: yaml.BaseDumper, path: Path):
     """Serializer (dumper) from yaml to a pathlib Path"""
     return (
         dumper.represent_sequence(f"!path", list(path.parts))
@@ -257,7 +279,7 @@ def path_representer(
     )
 
 
-def path_constructor(loader: yaml.BaseLoader, node) -> t.Union[Path, None]:
+def path_constructor(loader: yaml.BaseLoader, node):
     """Deserializer (loader) for a pathlib Path from yaml"""
     sequence = loader.construct_sequence(node, deep=True)
     return Path(*sequence) if sequence is not None else None
