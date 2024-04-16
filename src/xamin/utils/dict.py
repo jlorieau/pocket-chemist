@@ -3,8 +3,57 @@ Utilities for dicts
 """
 
 import typing as t
+from collections import OrderedDict
 
-__all__ = ("recursive_update",)
+__all__ = ("tuple_to_dict", "recursive_update")
+
+
+def tuple_to_dict(item) -> t.OrderedDict:
+    """Convert a tree of tuples to an ordered dict
+
+    Parameters
+    ----------
+    item
+        The tuple tree to convert to an ordered dict tree
+
+    Returns
+    -------
+    tree
+        The ordered dict tree
+
+    Examples
+    --------
+    >>> tuple_to_dict((
+    ...  ('a', 1), ('b', 2), ('c', 3)
+    ...  ))
+    OrderedDict({'a': 1, 'b': 2, 'c': 3})
+    >>> tuple_to_dict(('a', 1))
+    OrderedDict({'a': 1})
+    >>> tuple_to_dict((
+    ...  ('a', (('a1', 1), ('a2', 2), ('a3', 3))),
+    ...  ('b', ('one', 'two')),
+    ...  ('c', (1, 2, 3))
+    ...  )) # doctest: +NORMALIZE_WHITESPACE
+    OrderedDict({'a': OrderedDict({'a1': 1, 'a2': 2, 'a3': 3}),
+                 'b': OrderedDict({'one': 'two'}),
+                 'c': (1, 2, 3)})
+    """
+    if not isinstance(item, t.Iterable):
+        return item
+    if isinstance(item, t.Mapping):
+        item = item.items()
+
+    if len(item) >= 2 and all(hasattr(i, "__len__") and len(i) == 2 for i in item):
+        # ex: (('a', 1), ('b', 2), ('c', 2))
+        return OrderedDict(tuple((k, tuple_to_dict(v)) for k, v in item))
+    elif len(item) == 2:
+        # ex: ('a', 1)
+        return OrderedDict(((item[0], tuple_to_dict(item[1])),))
+    elif len(item) == 1:
+        # ex: (('a', 1),)
+        return tuple_to_dict(item[0])
+    else:
+        return item
 
 
 def recursive_update(
