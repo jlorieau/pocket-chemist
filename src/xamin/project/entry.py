@@ -47,14 +47,6 @@ class Entry(ABC):
         name = f"'{self.path}'" if self.path is not None else "None"
         return f"{cls_name}(path={name})"
 
-    def __getstate__(self) -> t.Dict:
-        """Get a copy of the current state for serialization"""
-        return {"path": self.path}
-
-    def __setstate__(self, state):
-        """Set the state for the entry based on the given state copy"""
-        self.path = state.get("path", None)
-
     def __eq__(self, other):
         """Test the equivalence of two entries"""
         conditions = (
@@ -62,6 +54,14 @@ class Entry(ABC):
             self.path == getattr(other, "path", None),  # same path
         )
         return all(conditions)
+
+    def __getstate__(self) -> t.Dict:
+        """Get a copy of the current state for serialization"""
+        return {"path": self.path}
+
+    def __setstate__(self, state):
+        """Set the state for the entry based on the given state copy"""
+        self.path = state.get("path", None)
 
     @staticmethod
     def subclasses() -> t.List[t.Tuple[int, "Entry"]]:
