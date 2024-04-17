@@ -75,6 +75,19 @@ class Project(YamlEntry):
         )
         return all(conditions)
 
+    def __getstate__(self) -> t.Dict:
+        """Get a copy of the current state for serialization"""
+        state = super().__getstate__()
+        state["meta"] = self.meta
+        state["entries"] = self.entries
+        return state
+
+    def __setstate__(self, state):
+        """Set the state for the entry based on the given state copy"""
+        super().__setstate__(state)
+        self._data["meta"].update(state.get("meta", OrderedDict()))
+        self._data["entries"].update(state.get("entries", OrderedDict()))
+
     @classmethod
     def is_type(
         cls, path: Path, hint: HintType = None, loader: t.Optional[yaml.Loader] = None

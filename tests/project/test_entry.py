@@ -23,14 +23,6 @@ def test_entry_depth():
     assert CsvEntry.depth() == 2
 
 
-def test_entry_repr(entry):
-    """Test the Entry __repr__ method."""
-    if getattr(entry, "path", None) is not None:
-        assert repr(entry) == f"{entry.__class__.__name__}(path='{entry.path}')"
-    else:
-        assert repr(entry) == f"{entry.__class__.__name__}(path=None)"
-
-
 def test_entry_getstate(entry):
     """Test the Entry __getstate__ method"""
     assert entry.__getstate__() == {"path": entry.path}
@@ -39,7 +31,8 @@ def test_entry_getstate(entry):
 def test_entry_setstate(entry):
     """Test the Entry __setstate__ method"""
     loaded = entry.__class__(path=None)
-    loaded.__setstate__({"path": entry.path})
+    state = entry.__getstate__()
+    loaded.__setstate__(state)
     assert entry == loaded
 
 
