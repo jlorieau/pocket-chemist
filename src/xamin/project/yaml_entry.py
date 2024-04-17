@@ -59,7 +59,8 @@ class YamlEntry(TextEntry):
         return (
             True
             if isinstance(data, t.Mapping)  # May be a mapping, like a dict
-            or isinstance(data, t.Iterable)  # May be an iterable, like a list
+            or isinstance(data, t.List)  # May be a list or tuple
+            or isinstance(data, t.Tuple)
             or isinstance(data, Entry)  # A Project entry may be produced
             else False
         )
