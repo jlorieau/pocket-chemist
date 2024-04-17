@@ -1,9 +1,11 @@
 """Tests for the Entry classes"""
 
 import inspect
+from copy import deepcopy
 
 import pytest
 from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry
+from xamin.utils.dict import recursive_update
 
 
 def test_entry_suclasses():
@@ -25,7 +27,8 @@ def test_entry_depth():
 
 def test_entry_getstate(entry):
     """Test the Entry __getstate__ method"""
-    assert entry.__getstate__() == {"path": entry.path}
+    state = entry.__getstate__()
+    assert state["path"] == entry.path
 
 
 def test_entry_setstate(entry):
@@ -95,17 +98,23 @@ def test_is_unsaved(entry, extra_data):
     assert not entry.is_unsaved
 
     # Get the original data
-    original_data = entry.data
+    original_data = deepcopy(entry.data)
     assert not entry.is_unsaved
 
     # Modify it and change that the text_entry has changed
-    entry.data = (
-        entry.data + extra if not isinstance(extra, dict) else entry.data | extra
-    )
+    if isinstance(extra, dict):
+        recursive_update(entry.data, extra)
+    else:
+        entry.data += extra
+
     assert entry.is_unsaved
 
     # Reset it and the is_unsaved flag should change
-    entry.data = original_data
+    if isinstance(extra, dict):
+        entry.data.clear()
+        entry.data.update(original_data)
+    else:
+        entry.data = original_data
     assert not entry.is_unsaved
 
 
@@ -122,9 +131,10 @@ def test_entry_save(entry, extra_data):
     assert entry.path.stat().st_mtime == start_mtime
 
     # Changing the data produces unsaved changes, which can be saved
-    entry.data = (
-        entry.data + extra if not isinstance(extra, dict) else entry.data | extra
-    )
+    if isinstance(extra, dict):
+        recursive_update(entry.data, extra)
+    else:
+        entry.data += extra
 
     entry.save()
     assert entry.path.stat().st_mtime >= start_mtime

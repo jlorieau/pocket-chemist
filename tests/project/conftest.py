@@ -6,7 +6,7 @@ import yaml
 
 import pytest
 
-from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry, YamlEntry
+from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry, YamlEntry, Project
 
 
 @pytest.fixture
@@ -52,6 +52,17 @@ def yaml_entry(tmp_path) -> YamlEntry:
 
 
 @pytest.fixture
+def project_entry(tmp_path, yaml_entry, csv_entry, text_entry, binary_entry) -> Project:
+    """A temporary instance of a Project"""
+    test_file = tmp_path / "test.proj"
+    project = Project(
+        test_file, entries=(yaml_entry, csv_entry, text_entry, binary_entry)
+    )
+    project.save()
+    return project
+
+
+@pytest.fixture
 def extra_data():
     """Retrieve extra data for different entry types"""
 
@@ -66,6 +77,8 @@ def extra_data():
             return [10, 11, 12, 13, 14, 15]
         elif entry_type == YamlEntry:
             return {"e": 6, "f": 6}
+        elif entry_type == Project:
+            return {"meta": {"new": "value"}}
         else:
             raise NotImplementedError(
                 f"Extra data for class "
