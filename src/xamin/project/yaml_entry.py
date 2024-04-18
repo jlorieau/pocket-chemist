@@ -10,7 +10,7 @@ from .entry import Entry, HintType
 
 __all__ = ("YamlEntry", "YamlType")
 
-YamlType = t.Union[t.Sequence, t.Mapping]
+YamlType = t.Sequence | t.Mapping
 
 
 class YamlEntry(Entry[YamlType]):
@@ -83,54 +83,12 @@ class YamlEntry(Entry[YamlType]):
     def default_data(self):
         return dict()
 
-    def load(self, return_data=False, *args, **kwargs):
-        """Extends the Entry parent method to load yaml data.
+    def serialize(self, data: t.Sequence | t.Mapping) -> str | bytes:
+        """Overrides parent's (Entry) serialize implementation"""
+        dumper = self.get_dumper()
+        return yaml.dump(data, Dumper=dumper, stream=data)
 
-        Parameters
-        ----------
-        return_data
-            If True, return the loaded data rather than set it to self._data
-            If False (default), set the loaded data to self._data
-        """
-        super().pre_load()
-
-        # load the data
-        data = None
-        if self.path is not None:
-            data = yaml.load(self.path.open(), Loader=self.get_loader())
-
-        if not return_data and data:
-            self._data = data
-
-        super().post_load(*args, **kwargs)
-
-        if return_data and data:
-            return data
-
-    def save(self, overwrite: bool = False, data=None, *args, **kwargs):
-        """Extends the Entry parent method to save yaml data to self.path
-
-        Parameters
-        ----------
-        overwrite
-            Whether to overwrite unsaved changes
-        data
-            If specified, serialize (dump) the given data instead of self._data.
-
-        Raises
-        ------
-        MissingPath
-            Raised if trying to save but the path could not be found.
-        UnsavedChanges
-            Raised if the destination file exists and its contents are newer
-            than those in this entry's data.
-        """
-        self.pre_save(overwrite=overwrite, *args, **kwargs)
-
-        # Save the data
-        data = data if data is not None else self._data  # bypass self.data load
-
-        if self.is_unsaved and self.path is not None:
-            yaml.dump(data, Dumper=self.get_dumper(), stream=self.path.open(mode="w"))
-
-        self.post_save(*args, **kwargs)
+    def deserialize(self, serialized: str | bytes) -> t.Sequence | t.Mapping:
+        """Overrides parent's (Entry) serialize implementation"""
+        loader = self.get_loader()
+        return yaml.load(serialized, Loader=loader)

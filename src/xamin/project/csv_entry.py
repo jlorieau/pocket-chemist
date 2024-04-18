@@ -56,6 +56,7 @@ class CsvEntry(Entry[t.List]):
         return []
 
     def serialize(self, data: Entry | None) -> str | bytes:
+        """Overrides parent's (Entry) serialize implementation"""
         dialect = getattr(self, "_dialect", "excel")
 
         # serialize the data
@@ -65,6 +66,7 @@ class CsvEntry(Entry[t.List]):
         return stream.read()
 
     def deserialize(self, serialized: str | bytes) -> t.List | Entry:
+        """Overrides parent's (Entry) deserialize implementation"""
         # load the dialect
         self._dialect = self.get_dialect(path=self.path)
 
