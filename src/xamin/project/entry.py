@@ -1,4 +1,5 @@
-"""Entry abstract base class and concrete Base classes TextEntry and BinaryEntry"""
+"""Entry abstract base class and concrete Base class
+"""
 
 import typing as t
 import pickle
@@ -44,6 +45,10 @@ class Entry(ABC, t.Generic[T]):
     hint_size = Setting(2048, desc="Size (in bytes) of the hint to read from the file")
 
     text_encoding = Setting("utf-8", desc="Default text file encoding")
+
+    #: The encoding for serialize data, if it's in text format
+    #: If it's binary data, then the encoding should be the bytes type
+    encoding = "utf-8"
 
     #: Cached data
     _data: T
@@ -337,6 +342,36 @@ class Entry(ABC, t.Generic[T]):
         """A factory method to return a new instance of self.data"""
         return None
 
+    def serialize(self, data: T) -> str | bytes:
+        """Serialize (dump) this entry or the specified data to text or bytes.
+
+        Parameters
+        ----------
+        data
+            The data to serialize
+
+        Returns
+        -------
+        serialized
+            The data serialized in text (str) or binary (bytes) format.
+        """
+        return data
+
+    def deserialize(self, serialized: str | bytes) -> T:
+        """Deserialize (load) this entry or the specified data to text or bytes.
+
+        Parameters
+        ----------
+        serialized
+            The text (str) or binary data (bytes) for deserialize as data
+
+        Returns
+        -------
+        data
+            The deserialized data
+        """
+        return serialized
+
     def pre_load(self, *args, **kwargs):
         """Before loading data, perform actions, like setting a default, if needed."""
         if not hasattr(self, "_data"):
@@ -354,6 +389,14 @@ class Entry(ABC, t.Generic[T]):
         """
         # Perform check
         self.pre_load(*args, **kwargs)
+
+        if self.path is not None:
+            if self.encoding == bytes:
+                contents = self.path.read_bytes()
+            else:
+                contents = self.path.read_text(encoding=self.encoding)
+
+            self._data = self.deserialize(contents)
 
         # Reset flags
         self.post_load(*args, **kwargs)
@@ -407,6 +450,14 @@ class Entry(ABC, t.Generic[T]):
         """
         # Perform checks and raise exceptions
         self.pre_save(overwrite=overwrite, *args, **kwargs)
+
+        # Save the data
+        if self.is_unsaved and self.path is not None:
+            serialized = self.serialize(self._data)
+            if self.encoding == bytes:
+                self.path.write_bytes(serialized)
+            else:
+                self.path.write_text(serialized, encoding=self.encoding)
 
         # Resets flags
         self.post_save(*args, **kwargs)

@@ -5,6 +5,7 @@ An entry for CSV files
 import typing as t
 import csv
 from pathlib import Path
+from io import StringIO
 
 from thatway import Setting
 from loguru import logger
@@ -54,30 +55,18 @@ class CsvEntry(Entry[t.List]):
     def default_data(self):
         return []
 
-    def load(self, *args, **kwargs):
-        """Extends the Entry parent method to load text data"""
-        super().pre_load()
+    def serialize(self, data: Entry | None) -> str | bytes:
+        dialect = getattr(self, "_dialect", "excel")
 
-        if self.path is not None:
-            # load the dialect
-            self._dialect = self.get_dialect(path=self.path)
+        # serialize the data
+        stream = StringIO()
+        writer = csv.writer(stream, dialect=dialect)
+        writer.writerows(data)  # bypass loading mechanism
+        return stream.read()
 
-            # load the data
-            reader = csv.reader(self.path.open(), dialect=self._dialect)
-            self._data = list(reader)
+    def deserialize(self, serialized: str | bytes) -> t.List | Entry:
+        # load the dialect
+        self._dialect = self.get_dialect(path=self.path)
 
-        super().post_load(*args, **kwargs)
-
-    def save(self, overwrite: bool = False, *args, **kwargs):
-        """Extends the Entry parent method to save text data to self.path"""
-        self.pre_save(overwrite=overwrite, *args, **kwargs)
-
-        if self.is_unsaved and self.path is not None:
-            # load the dialect, default to excel csv
-            dialect = getattr(self, "_dialect", "excel")
-
-            # Save the data
-            writer = csv.writer(self.path.open(mode="w"), dialect=dialect)
-            writer.writerows(self._data)  # bypass loading mechanism
-
-        self.post_save(*args, **kwargs)
+        # load the data
+        return list(csv.reader(serialized, dialect=self._dialect))

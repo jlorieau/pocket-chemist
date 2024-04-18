@@ -30,22 +30,3 @@ class TextEntry(Entry[str]):
 
     def default_data(self):
         return ""
-
-    def load(self, *args, **kwargs):
-        """Extends the Entry parent method to load text data"""
-        super().pre_load()
-
-        if self.path is not None:
-            self._data = self.path.read_text()  # load the data
-
-        super().post_load(*args, **kwargs)
-
-    def save(self, overwrite: bool = False, *args, **kwargs):
-        """Extends the Entry parent method to save text data to self.path"""
-        self.pre_save(overwrite=overwrite, *args, **kwargs)
-
-        # Save the data
-        if self.is_unsaved and self.path is not None:
-            self.path.write_text(self._data)  # save the data
-
-        self.post_save(*args, **kwargs)
