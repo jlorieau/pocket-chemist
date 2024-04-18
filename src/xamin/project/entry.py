@@ -1,8 +1,8 @@
 """Entry abstract base class and concrete Base classes TextEntry and BinaryEntry"""
 
 import typing as t
-import csv
 import pickle
+import inspect
 from abc import ABC, abstractmethod
 from pathlib import Path
 from hashlib import sha256
@@ -12,13 +12,29 @@ from loguru import logger
 
 from ..utils.classes import all_subclasses
 
-__all__ = ("Entry", "HintType", "TextEntry", "BinaryEntry")
+__all__ = ("Entry", "HintType", "MissingPath", "FileChanged")
 
 # The types that a 'hint' can adopt
 HintType = t.Union[t.Text, t.ByteString, None]
 
+# Generic type annotation
+T = t.TypeVar("T")
 
-class Entry(ABC):
+
+class EntryException(Exception):
+    """Exception raised in processing entries."""
+
+
+class MissingPath(EntryException):
+    """Exception raised when trying to save/load a file but no path is specified"""
+
+
+class FileChanged(EntryException):
+    """Exception raised when an entry tries to save but the file it is saving to
+    is newer."""
+
+
+class Entry(ABC, t.Generic[T]):
     """A file entry in a project"""
 
     #: The path of the file
@@ -30,11 +46,15 @@ class Entry(ABC):
     text_encoding = Setting("utf-8", desc="Default text file encoding")
 
     #: Cached data
-    _data = None
+    _data: T
 
     #: The data hash at load/save time
     _loaded_hash: str = ""
 
+    #: The mtime of the data loaded from a file
+    _data_mtime = None
+
+    #: The cached Entry subclasses
     _subclasses = None
 
     def __init__(self, path: t.Optional[Path] = None):
@@ -62,6 +82,11 @@ class Entry(ABC):
     def __setstate__(self, state):
         """Set the state for the entry based on the given state copy"""
         self.path = state.get("path", None)
+
+    @classmethod
+    def _generics_type(cls):
+        """Retrieve the type 'T' of the Entry class or subclass"""
+        return t.get_args(cls.__orig_bases__[0])
 
     @staticmethod
     def subclasses() -> t.List[t.Tuple[int, "Entry"]]:
@@ -188,6 +213,40 @@ class Entry(ABC):
             return None
 
     @property
+    def is_stale(self) -> bool:
+        """Determine whether the data is stale and should be reloaded from self.path."""
+
+        # Setup logger
+        def state(value, reason):
+            logger.debug(f"{self.__class__.__name__}.is_state={value}. {reason}")
+            return value
+
+        # Evaluate the state
+        if not hasattr(self, "_data"):
+            return True
+
+        elif self.path is None:
+            return state(False, "No path was specified")
+
+        elif not self.path.exists():
+            return state(False, "The file path does not exist")
+
+        elif self.path.exists() and (self._data_mtime is None or self._data is None):
+            return state(True, "A file path exists, but is not yet loaded loaded")
+
+        elif self._data_mtime < self.path.stat().st_mtime:
+            return state(True, "The data mtime is older than the file mtime")
+
+        else:
+            return state(False, "The data mtime is as new as the file's mtime")
+
+    def reset_mtime(self):
+        """Update the mtime of the loaded data (self._data_mtime) to equal that of
+        the file (self.path)"""
+        if self.path is not None:
+            self._data_mtime = self.path.stat().st_mtime
+
+    @property
     def is_unsaved(self) -> bool:
         """Determine whether the given entry has changed and not been saved.
 
@@ -195,10 +254,17 @@ class Entry(ABC):
         Otherwise, see if the hash of the loaded data matches the current has. If it
         doesn't the the contents of the data have changed.
         """
+
+        # Setup logger
+        def state(value, reason):
+            logger.debug(f"{self.__class__.__name__}.is_unsaved={value}. {reason}")
+            return value
+
+        # Evaluate the state
         if getattr(self, "path", None) is None:
-            return True
+            return state(True, "No path was specified")
         elif self.hash != self._loaded_hash:
-            return True
+            return state(True, "Data hash is not equal to the loaded file hash")
         else:
             return False
 
@@ -213,7 +279,7 @@ class Entry(ABC):
             - Empty string, if a hash could not be calculated
             - A hex hash (sha256) of the data
         """
-        if self._data is None:
+        if getattr(self, "_data", None) is None:
             return ""
         elif isinstance(self._data, str):
             return sha256(self._data.encode(self.text_encoding)).hexdigest()
@@ -222,13 +288,22 @@ class Entry(ABC):
         else:
             return sha256(pickle.dumps(self._data)).hexdigest()
 
+    def reset_hash(self):
+        """Reset the loaded hash to the new contents of self.data.
+
+        This function is needed when data is freshly loaded from a file, or when
+        the data has been freshly saved to the file
+        """
+        self._loaded_hash = self.hash  # Reset the loaded hash
+
     @property
-    def data(self) -> t.Any:
+    def data(self) -> T:
         """Return the data (or an iterator) of the data.
 
         Subclasses are responsible for load the data and calling this parent
         property."""
-        self.reset_hash()
+        if self.is_stale:
+            self.load()
         return self._data
 
     @data.setter
@@ -249,129 +324,80 @@ class Entry(ABC):
         else:
             return ()
 
-    def reset_hash(self):
-        """Reset the loaded hash to the new contents of self.data.
+    def default_data(self):
+        """A factory method to return a new instance of self.data"""
+        return None
 
-        This function is needed when data is freshly loaded from a file, or when
-        the data has been freshly saved to the file
+    def pre_load(self, *args, **kwargs):
+        """Before loading data, perform actions, like setting a default, if needed."""
+        if not hasattr(self, "_data"):
+            self._data = self.default_data()
+
+    def post_load(self):
+        """After successfully loading data, perform actions, like resetting the
+        hash and mtime,"""
+        self.reset_hash()
+        self.reset_mtime()
+
+    def load(self, *args, **kwargs):
+        """Load and return the data (self._data) or return a default data instance,
+        if the data cannot be loaded from a file.
         """
-        self._loaded_hash = self.hash  # Reset the loaded hash
+        # Perform check
+        self.pre_load(*args, **kwargs)
 
-    def save(self):
-        """Save the data to self.path
+        # Reset flags
+        self.post_load(*args, **kwargs)
 
-        Returns
-        -------
-        saved
-            Whether the file was saved
+    def pre_save(self, overwrite: bool = False, *args, **kwargs):
+        """Before saving data, perform actions like checking whether a path exists
+        and whether.
+
+        Parameters
+        ----------
+        overwrite
+            Whether to overwrite unsaved changes
 
         Raises
         ------
-        FileNotFoundError
+        MissingPath
             Raised if trying to save but the path could not be found.
+        UnsavedChanges
+            Raised if the destination file exists and its contents are newer
+            than those in this entry's data.
         """
         if getattr(self, "path", None) is None:
-            raise FileNotFoundError(
+            raise MissingPath(
                 f"Could not save entry of type "
                 f"'{self.__class__.__name__}' because no path is specified."
             )
+        if not overwrite and hasattr(self, "_data") and self.is_stale:
+            raise FileChanged(f"Cannot overwrite the file at path '{self.path}'")
 
+    def post_save(self, *args, **kwargs):
+        """After successfully saving data, perform actions like resetting the cached
+        hash and stored mtime"""
+        self.reset_hash()
+        self.reset_mtime()
 
-class TextEntry(Entry):
-    """A text file entry in a project"""
+    def save(self, overwrite: bool = False, *args, **kwargs):
+        """Save the data to self.path.
 
-    @classmethod
-    def is_type(cls, path: Path, hint: HintType = None) -> bool:
-        """Overrides  parent class method to test whether path is a TextEntry.
-
-        Examples
-        --------
-        >>> p = Path(__file__)  # this .py text file
-        >>> TextEntry.is_type(p)
-        True
-        >>> import sys
-        >>> e = Path(sys.executable)  # Get the python interpreter executable
-        >>> TextEntry.is_type(e)
-        False
-        """
-        hint = hint if hint is not None else cls.get_hint(path)
-        return isinstance(hint, str)
-
-    @property
-    def data(self) -> str:
-        """Overrides parent class method to return the file's text."""
-        if not self._data and self.path:
-            self._data = self.path.read_text()
-        return super().data
-
-    @data.setter
-    def data(self, value):
-        """Overrides parent data setter.
+        Parameters
+        ----------
+        overwrite
+            Whether to overwrite unsaved changes
 
         Raises
         ------
-        TypeError
-            If the given value isn't a text string.
+        MissingPath
+            Raised if trying to save but the path could not be found.
+        UnsavedChanges
+            Raised if the destination file exists and its contents are newer
+            than those in this entry's data.
         """
-        if not isinstance(value, str):
-            raise TypeError("Expected 'str' value type")
-        self._data = value
+        # Perform checks and raise exceptions
+        self.pre_save(overwrite=overwrite, *args, **kwargs)
 
-    def save(self):
-        """Overrides the parent method to save the text data to self.path"""
-        Entry.save(self)  # Checks whether a save can be conducted
-
-        data = self.data
-        if self.is_unsaved and data:
-            self.path.write_text(data)
-            self.reset_hash()
-
-
-class BinaryEntry(Entry):
-    """A binary file entry in a project"""
-
-    @classmethod
-    def is_type(cls, path: Path, hint: HintType = None) -> bool:
-        """Overrides  parent class method to test whether path is a BinaryEntry.
-
-        Examples
-        --------
-        >>> p = Path(__file__)  # this .py text file
-        >>> TextEntry.is_type(p)
-        False
-        >>> import sys
-        >>> e = Path(sys.executable)  # Get the python interpreter executable
-        >>> TextEntry.is_type(e)
-        True
-        """
-        hint = hint if hint is not None else cls.get_hint(path)
-        return isinstance(hint, bytes)
-
-    @property
-    def data(self) -> str:
-        """Overrides parent class method to return the file's binary contents."""
-        if not self._data and self.path:
-            self._data = self.path.read_bytes()
-        return super().data
-
-    @data.setter
-    def data(self, value):
-        """Overrides parent data setter.
-
-        Raises
-        ------
-        TypeError
-            If the given value isn't a byte string.
-        """
-        if not isinstance(value, bytes):
-            raise TypeError("Expected 'bytes' value type")
-        self._data = value
-
-    def save(self):
-        """Overrides the parent method to save the text data to self.path"""
-        Entry.save(self)  # Checks whether a save can be conducted
-
-        data = self.data
-        if self.is_unsaved and data:
-            self.path.write_bytes(data)
-            self.reset_hash()
+        # Resets flags
+        self.post_save(*args, **kwargs)

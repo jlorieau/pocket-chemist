@@ -51,15 +51,15 @@ def yaml_entry(tmp_path) -> YamlEntry:
     return YamlEntry(test_file)
 
 
-@pytest.fixture
-def project_entry(tmp_path, yaml_entry, csv_entry, text_entry, binary_entry) -> Project:
-    """A temporary instance of a Project"""
-    test_file = tmp_path / "test.proj"
-    project = Project(
-        test_file, entries=(yaml_entry, csv_entry, text_entry, binary_entry)
-    )
-    project.save()
-    return project
+# @pytest.fixture
+# def project_entry(tmp_path, yaml_entry, csv_entry, text_entry, binary_entry) -> Project:
+#     """A temporary instance of a Project"""
+#     test_file = tmp_path / "test.proj"
+#     project = Project(
+#         test_file, entries=(yaml_entry, csv_entry, text_entry, binary_entry)
+#     )
+#     project.save()
+#     return project
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ def extra_data():
         elif entry_type == BinaryEntry:
             return b"some extra stuff"
         elif entry_type == CsvEntry:
-            return [10, 11, 12, 13, 14, 15]
+            return [[10, 11, 12, 13, 14, 15]]
         elif entry_type == YamlEntry:
             return {"e": 6, "f": 6}
         elif entry_type == Project:

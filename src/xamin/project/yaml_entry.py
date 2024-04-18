@@ -5,20 +5,16 @@ An entry for YAML files
 import typing as t
 import yaml
 from pathlib import Path
-from collections import OrderedDict
 
-from .entry import Entry, TextEntry, HintType
+from .entry import Entry, HintType
 
 __all__ = ("YamlEntry", "YamlType")
 
-YamlType = t.Union[t.List, t.OrderedDict]
+YamlType = t.Union[t.Sequence, t.Mapping]
 
 
-class YamlEntry(TextEntry):
+class YamlEntry(Entry[YamlType]):
     """A YAML file entry in a project"""
-
-    # Locally cached data
-    _data: YamlType
 
     @classmethod
     def is_type(
@@ -76,35 +72,6 @@ class YamlEntry(TextEntry):
         return yaml.SafeDumper
 
     @property
-    def data(self) -> YamlType:
-        """Overrides parent class method to return the file's formatted contents"""
-        # Read in the data, if needed
-        if not self._data and self.path:
-            with open(self.path, "r") as f:
-                data = yaml.load(f, Loader=self.get_loader())
-
-                if isinstance(data, dict):
-                    self._data = OrderedDict(data)
-                elif isinstance(data, list):
-                    self._data = data
-                else:
-                    pass
-        return super().data
-
-    @data.setter
-    def data(self, value):
-        """Overrides parent data setter.
-
-        Raises
-        ------
-        TypeError
-            If the given value isn't DictType string.
-        """
-        if not isinstance(value, YamlType):
-            raise TypeError(f"Expected '{YamlType}' value type")
-        self._data = value
-
-    @property
     def shape(self) -> t.Tuple[int]:
         """Override parent method to give shape (size) of root tree"""
         data = self.data
@@ -113,13 +80,30 @@ class YamlEntry(TextEntry):
         else:
             return ()
 
-    def save(self, data=None):
-        """Overrides the Entry parent method to save the yaml data to self.path"""
-        Entry.save(self)  # Check whether a save can be conducted
+    def default_data(self):
+        return dict()
 
-        data = data if data is not None else self.data
+    def load(self, *args, **kwargs):
+        """Extends the Entry parent method to load text data"""
+        super().pre_load()
 
-        if self.is_unsaved and data:
+        # load the data
+        if self.path is not None:
+            with open(self.path, "r") as f:
+                self._data = yaml.load(f, Loader=self.get_loader())
+
+        super().post_load(*args, **kwargs)
+
+    def save(self, overwrite: bool = False, *args, **kwargs):
+        """Extends the Entry parent method to save text data to self.path"""
+        self.pre_save(overwrite=overwrite, *args, **kwargs)
+
+        # Save the data
+        if self.is_unsaved and self.path is not None:
             with open(self.path, "w") as f:
-                f.write(yaml.dump(data, Dumper=self.get_dumper()))
-            self.reset_hash()
+                dump = yaml.dump(
+                    self._data, Dumper=self.get_dumper()
+                )  # bypas data load
+                f.write(dump)
+
+        self.post_save(*args, **kwargs)
