@@ -43,9 +43,6 @@ class Project(YamlEntry):
     def __init__(self, *args, entries: EntryAddedType = (), **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Set the attributes
-        self.meta["version"] = __version__
-
         # populate initial entries
         self.add_entries(entries)
 
@@ -53,7 +50,10 @@ class Project(YamlEntry):
         """The string representation for this class"""
         cls_name = self.__class__.__name__
         name = f"'{self.path}'" if self.path is not None else "None"
-        entries_len = len(self.entries)
+
+        # Retrieve the meta dict directly and bypass data to avoid triggering a load
+        entries = getattr(self, "_data", dict()).get("entries", dict())
+        entries_len = len(entries)
         return f"{cls_name}(path={name}, entries={entries_len})"
 
     def __eq__(self, other):
@@ -64,19 +64,6 @@ class Project(YamlEntry):
             self.entries == getattr(other, "entries", None),  # same entries
         )
         return all(conditions)
-
-    # def __getstate__(self) -> t.Dict:
-    #     """Get a copy of the current state for serialization"""
-    #     state = super().__getstate__()
-    #     state["meta"] = self.meta
-    #     state["entries"] = self.entries
-    #     return state
-
-    # def __setstate__(self, state):
-    #     """Set the state for the entry based on the given state copy"""
-    #     super().__setstate__(state)
-    #     self._data["meta"].update(state.get("meta", OrderedDict()))
-    #     self._data["entries"].update(state.get("entries", OrderedDict()))
 
     @classmethod
     def is_type(
@@ -132,6 +119,8 @@ class Project(YamlEntry):
     @property
     def meta(self) -> t.OrderedDict:
         """The metadata dict for the project"""
+        meta = self.data["meta"]
+        _ = meta.setdefault("version", __version__)  # set version, if needed
         return self.data["meta"]
 
     @property
@@ -139,19 +128,38 @@ class Project(YamlEntry):
         """The Entry instances for the project"""
         return self.data["entries"]
 
-    def load(self, return_data=False, *args, **kwargs):
-        project = super().load(return_data=True, *args, **kwargs)
-        if project is not None:
-            self.path = project.path
-            self._data = project._data
+    def load(self, *args, **kwargs):
+        """Overrides parent's load method to load the deserialized data to
+        'self' instead of 'self._data'."""
+        # Perform check
+        self.pre_load(*args, **kwargs)
 
-    def save(self, *args, data=None, **kwargs):
-        """Overrides the YamlEntry parent method to save the yaml data to self.path"""
-        # Instead of encoding self._data, encode the project entry itself, which
-        # has a special yaml representer (see below)
-        data = data if data is not None else self
+        if self.path is not None:
+            contents = self.path.read_text(encoding=self.encoding)
 
-        return super().save(*args, data=data, **kwargs)
+            loaded_project = self.deserialize(contents)
+
+            # Transfer '_data' (with 'meta' and 'entries') to self.
+            # Use _data to avoid trigerring a load
+            self._data.update(getattr(loaded_project, "_data", OrderedDict()))
+            self.path = loaded_project.path
+
+        # Reset flags
+        self.post_load(*args, **kwargs)
+
+    def save(self, overwrite: bool = False, *args, **kwargs):
+        """Overrides parent's save method to save the serialized 'self' instead of
+        'self._data'."""
+        # Perform checks and raise exceptions
+        self.pre_save(overwrite=overwrite, *args, **kwargs)
+
+        # Save the data
+        if self.is_unsaved and self.path is not None:
+            serialized_self = self.serialize(self)
+            self.path.write_text(serialized_self, encoding=self.encoding)
+
+        # Resets flags
+        self.post_save(*args, **kwargs)
 
     def assign_unique_names(self):
         """Assign unique names to this project's entries.
