@@ -217,9 +217,14 @@ class Entry(ABC, t.Generic[T]):
         """Determine whether the data is stale and should be reloaded from self.path."""
 
         # Setup logger
-        def state(value, reason):
-            logger.debug(f"{self.__class__.__name__}.is_state={value}. {reason}")
-            return value
+        if __debug__:
+
+            def state(value, reason):
+                logger.debug(f"{self.__class__.__name__}.is_state={value}. {reason}")
+                return value
+
+        else:
+            state = lambda s: s
 
         # Evaluate the state
         if not hasattr(self, "_data"):
@@ -232,7 +237,7 @@ class Entry(ABC, t.Generic[T]):
             return state(False, "The file path does not exist")
 
         elif self.path.exists() and (self._data_mtime is None or self._data is None):
-            return state(True, "A file path exists, but is not yet loaded loaded")
+            return state(True, "A file path exists, but is not yet loaded")
 
         elif self._data_mtime < self.path.stat().st_mtime:
             return state(True, "The data mtime is older than the file mtime")
@@ -254,11 +259,15 @@ class Entry(ABC, t.Generic[T]):
         Otherwise, see if the hash of the loaded data matches the current has. If it
         doesn't the the contents of the data have changed.
         """
-
         # Setup logger
-        def state(value, reason):
-            logger.debug(f"{self.__class__.__name__}.is_unsaved={value}. {reason}")
-            return value
+        if __debug__:
+
+            def state(value, reason):
+                logger.debug(f"{self.__class__.__name__}.is_unsaved={value}. {reason}")
+                return value
+
+        else:
+            state = lambda s: s
 
         # Evaluate the state
         if getattr(self, "path", None) is None:
