@@ -225,7 +225,7 @@ class Entry(ABC, t.Generic[T]):
         if __debug__:
 
             def state(value, reason):
-                logger.debug(f"{self.__class__.__name__}.is_state={value}. {reason}")
+                logger.debug(f"{self.__class__.__name__}.is_stale={value}. {reason}")
                 return value
 
         else:
@@ -242,7 +242,7 @@ class Entry(ABC, t.Generic[T]):
             return state(False, "The file path does not exist")
 
         elif self.path.exists() and (self._data_mtime is None or self._data is None):
-            return state(True, "A file path exists, but is not yet loaded")
+            return state(True, f"File path exists, but not yet loaded: '{self.path}'")
 
         elif self._data_mtime < self.path.stat().st_mtime:
             return state(True, "The data mtime is older than the file mtime")
