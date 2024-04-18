@@ -86,7 +86,7 @@ class YamlEntry(Entry[YamlType]):
     def serialize(self, data: t.Sequence | t.Mapping) -> str | bytes:
         """Overrides parent's (Entry) serialize implementation"""
         dumper = self.get_dumper()
-        return yaml.dump(data, Dumper=dumper, stream=data)
+        return yaml.dump(data, Dumper=dumper)
 
     def deserialize(self, serialized: str | bytes) -> t.Sequence | t.Mapping:
         """Overrides parent's (Entry) serialize implementation"""
