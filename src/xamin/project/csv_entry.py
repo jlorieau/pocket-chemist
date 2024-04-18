@@ -31,19 +31,16 @@ class CsvEntry(Entry[t.List]):
         try:
             # Try to find the dialect. If successful (without exception or None
             # returned)
-            dialect = cls.dialect(path=path, hint=hint)
+            dialect = cls.get_dialect(path=path, hint=hint)
             return True if dialect is not None else False
         except:
             return False
 
     @classmethod
-    def dialect(cls, path: Path, hint: HintType = None) -> csv.Dialect:
+    def get_dialect(cls, path: Path, hint: HintType = None) -> csv.Dialect:
         """Retrieve the dialect for the csv file"""
         hint = cls.get_hint(path=path) if hint is None else hint
-        dialect = csv.Sniffer().sniff(hint, delimiters=cls.default_delimiters)
-
-        logger.debug(f"{cls.__name__} CSV dialect selected: {dialect}")
-        return dialect
+        return csv.Sniffer().sniff(hint, delimiters=cls.default_delimiters)
 
     @property
     def shape(self) -> t.Tuple[int, int]:
@@ -63,7 +60,7 @@ class CsvEntry(Entry[t.List]):
 
         if self.path is not None:
             # load the dialect
-            self._dialect = self.dialect(path=self.path)
+            self._dialect = self.get_dialect(path=self.path)
 
             # load the data
             with open(self.path, "r") as f:
