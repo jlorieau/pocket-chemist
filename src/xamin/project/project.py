@@ -35,23 +35,13 @@ class Project(YamlEntry):
         desc="Default name pattern to use for entries without a path",
     )
 
-    #: All of the currently opened projects
-    _opened_projects = []
-
     #: A dict of data entries in this project. The following fields (keys) are included:
     #:   - metadata: The project's metadata
     #:   - files: The file entries that are part of the project
     _data: t.OrderedDict[str, t.Union[Entry, t.OrderedDict]]
 
     def __init__(self, *args, entries: EntryAddedType = (), **kwargs):
-        # Populate an empty path, if a path wasn't specified
-        if len(args) == 0 and "path" not in kwargs:
-            super().__init__(path=None, *args, **kwargs)
-        else:
-            super().__init__(*args, **kwargs)
-
-        # Add self as a weakref to the listing opened projects.
-        Project._opened_projects.append(ref(self))
+        super().__init__(*args, **kwargs)
 
         # Set the attributes
         self.meta["version"] = __version__
@@ -75,18 +65,18 @@ class Project(YamlEntry):
         )
         return all(conditions)
 
-    def __getstate__(self) -> t.Dict:
-        """Get a copy of the current state for serialization"""
-        state = super().__getstate__()
-        state["meta"] = self.meta
-        state["entries"] = self.entries
-        return state
+    # def __getstate__(self) -> t.Dict:
+    #     """Get a copy of the current state for serialization"""
+    #     state = super().__getstate__()
+    #     state["meta"] = self.meta
+    #     state["entries"] = self.entries
+    #     return state
 
-    def __setstate__(self, state):
-        """Set the state for the entry based on the given state copy"""
-        super().__setstate__(state)
-        self._data["meta"].update(state.get("meta", OrderedDict()))
-        self._data["entries"].update(state.get("entries", OrderedDict()))
+    # def __setstate__(self, state):
+    #     """Set the state for the entry based on the given state copy"""
+    #     super().__setstate__(state)
+    #     self._data["meta"].update(state.get("meta", OrderedDict()))
+    #     self._data["entries"].update(state.get("entries", OrderedDict()))
 
     @classmethod
     def is_type(
@@ -128,32 +118,40 @@ class Project(YamlEntry):
         # Add custom representers to loader (see below)
         dumper.add_representer(PosixPath, path_representer)  # Needed for paths
         dumper.add_representer(WindowsPath, path_representer)  # Needed for paths
-        dumper.add_representer(Project, project_representer_no_relpath)
+        dumper.add_representer(Project, project_representer)
 
         return dumper
 
-    @classmethod
-    def opened(cls) -> t.List["Project"]:
-        """Return a listing of opened projects"""
-        projects = [p() for p in cls._opened_projects]
-        return [p for p in projects if p is not None]  # Remove invalid weakrefs
-
-    @property
-    def data(self) -> t.OrderedDict:
-        """The data dict for the project"""
-        if getattr(self, "_data", None) is None:
-            self._data = OrderedDict()
-        return self._data
+    def default_data(self):
+        items = (
+            ("meta", OrderedDict()),
+            ("entries", OrderedDict()),
+        )
+        return OrderedDict(items)
 
     @property
     def meta(self) -> t.OrderedDict:
         """The metadata dict for the project"""
-        return self.data.setdefault("meta", OrderedDict())
+        return self.data["meta"]
 
     @property
     def entries(self) -> t.OrderedDict:
         """The Entry instances for the project"""
-        return self.data.setdefault("entries", OrderedDict())
+        return self.data["entries"]
+
+    def load(self, return_data=False, *args, **kwargs):
+        project = super().load(return_data=True, *args, **kwargs)
+        if project is not None:
+            self.path = project.path
+            self._data = project._data
+
+    def save(self, *args, data=None, **kwargs):
+        """Overrides the YamlEntry parent method to save the yaml data to self.path"""
+        # Instead of encoding self._data, encode the project entry itself, which
+        # has a special yaml representer (see below)
+        data = data if data is not None else self
+
+        return super().save(*args, data=data, **kwargs)
 
     def assign_unique_names(self):
         """Assign unique names to this project's entries.
@@ -234,7 +232,6 @@ class Project(YamlEntry):
                     # Find a unique name
                     while name(num=num) in self.entries:
                         num += 1
-
                     self.entries[name(num)] = entry
 
         # Update the project names
@@ -273,12 +270,6 @@ class Project(YamlEntry):
 
         self.add_entries(*entries)
 
-    def save(self, data=None):
-        """Overrides the YamlEntry parent method to save the yaml data to self.path"""
-        # Instead of encoding self._data, encode the project entry itself, which
-        # has a special yaml representer (see below)
-        return super().save(data=self)
-
 
 ## YAML constructors and representers for YAML loaders and dumpers
 
@@ -303,6 +294,10 @@ def project_representer(
 ):
     """Deserializer (loader) for a Project from yaml
 
+    Note: Access project._data instead of project.data/project.meta/project.entries
+    to avoid triggering a load. The file that is being save to is touched by the
+    parent's save method.
+
     Parameters
     ----------
     dumper
@@ -322,9 +317,17 @@ def project_representer(
         if relpath is None:
             relpath = project.path.parent if project.path is not None else None
 
+        # Get the project data directly rather than from the data/meta/entries methods
+        # This avoids a check to see if the data is stale and a possible re-load of
+        # the data on save
+        project_data = getattr(project, "_data", OrderedDict())
+        project_meta = project_data.get("meta", OrderedDict())
+        project_entries = project_data.get("entries", OrderedDict())
+
         # Prepare a list of tuples for the entries
         entries = []
-        for name, entry in project.entries.items():
+
+        for name, entry in project_entries.items():
             # Get the state dict and other useful info
             state = entry.__getstate__()
             cls_name = entry.__class__.__name__
@@ -353,7 +356,7 @@ def project_representer(
         return (
             f"!{project.__class__.__name__}",
             (
-                ("meta", tuple((k, v) for k, v in project.meta.items())),
+                ("meta", tuple((k, v) for k, v in project_meta.items())),
                 ("path", project.path),
                 ("entries", tuple(entries)),
             ),
@@ -414,9 +417,15 @@ def project_constructor(loader: yaml.BaseLoader, node):
         path = mapping.pop("path", None)
 
         # Reconstruct the project
-        project = Project(path=path)
+        project = Project(path=None)
+
         project.meta.update(meta)
         project.entries.update(entries)
+
+        # Set path after creating the project so that accessing project.data (through
+        # project.meta and project.entries) does not trigger a recursive reload of
+        # the project
+        project.path = path
         return project
 
     mapping = loader.construct_mapping(node, deep=True)
