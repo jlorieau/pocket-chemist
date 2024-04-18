@@ -63,9 +63,8 @@ class CsvEntry(Entry[t.List]):
             self._dialect = self.get_dialect(path=self.path)
 
             # load the data
-            with open(self.path, "r") as f:
-                reader = csv.reader(f, dialect=self._dialect)
-                self._data = list(reader)
+            reader = csv.reader(self.path.open(), dialect=self._dialect)
+            self._data = list(reader)
 
         super().post_load(*args, **kwargs)
 
@@ -78,8 +77,7 @@ class CsvEntry(Entry[t.List]):
             dialect = getattr(self, "_dialect", "excel")
 
             # Save the data
-            with open(self.path, "w") as f:
-                writer = csv.writer(f, dialect=dialect)
-                writer.writerows(self._data)  # bypass loading mechanism
+            writer = csv.writer(self.path.open(mode="w"), dialect=dialect)
+            writer.writerows(self._data)  # bypass loading mechanism
 
         self.post_save(*args, **kwargs)

@@ -84,26 +84,23 @@ class YamlEntry(Entry[YamlType]):
         return dict()
 
     def load(self, *args, **kwargs):
-        """Extends the Entry parent method to load text data"""
+        """Extends the Entry parent method to load yaml data"""
         super().pre_load()
 
         # load the data
         if self.path is not None:
-            with open(self.path, "r") as f:
-                self._data = yaml.load(f, Loader=self.get_loader())
+            self._data = yaml.load(self.path.open(), Loader=self.get_loader())
 
         super().post_load(*args, **kwargs)
 
-    def save(self, overwrite: bool = False, *args, **kwargs):
-        """Extends the Entry parent method to save text data to self.path"""
+    def save(self, overwrite: bool = False, data=None, *args, **kwargs):
+        """Extends the Entry parent method to save yaml data to self.path"""
         self.pre_save(overwrite=overwrite, *args, **kwargs)
 
         # Save the data
+        data = data if data is not None else self._data  # bypass self.data load
+
         if self.is_unsaved and self.path is not None:
-            with open(self.path, "w") as f:
-                dump = yaml.dump(
-                    self._data, Dumper=self.get_dumper()
-                )  # bypas data load
-                f.write(dump)
+            yaml.dump(data, Dumper=self.get_dumper(), stream=self.path.open(mode="w"))
 
         self.post_save(*args, **kwargs)
