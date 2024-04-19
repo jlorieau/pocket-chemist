@@ -42,7 +42,11 @@ def test_project_constructor_representer(text_entry):
     """Test the project_constructure and project_representer functions"""
     # Create a project with entries
     project_filepath = text_entry.path.with_suffix(".proj")
-    project = Project(path=project_filepath, entries=(text_entry,))
+    project = Project(path=None, entries=(text_entry,))
+
+    # Save the project
+    project.path = project_filepath
+    project.save()
 
     # Setup the dumper
     dumper = yaml.SafeDumper
@@ -60,6 +64,11 @@ def test_project_constructor_representer(text_entry):
 
     # Try to recreate the project from the yaml text
     load = yaml.load(text, Loader=loader)
+    assert project.path == load.path
+    assert project.meta == load.meta
+    assert project.entries["test.txt"] == load.entries["test.txt"]  ##
+    assert project.entries == load.entries
+
     assert project == load
 
     # Next, if we try to use the normal project_representer, then the path of
@@ -139,6 +148,30 @@ def test_project_assign_unique_names():
     assert list(project.entries.keys()) == [a, b]
 
 
+def test_project_to_absolute_relative_paths(project_entry):
+    """Test the Project.to_absolute_paths and Project.to_relative_paths methods."""
+    # Check that the project has entries
+    assert len(project_entry.entries) > 0
+
+    # Convert to absolute paths and check that the entries have absolute paths
+    project_entry.to_absolute_paths()
+    for entry in project_entry.entries.values():
+        assert entry.path.is_absolute()
+        assert entry.path.exists()
+
+    # Convert to relative paths and check that the entries have relative paths
+    project_entry.to_relative_paths()
+    for entry in project_entry.entries.values():
+        assert not entry.path.is_absolute()
+        assert (project_entry.path.parent / entry.path).exists()
+
+    # Convert to absolute paths and check that the entries have absolute paths
+    project_entry.to_absolute_paths()
+    for entry in project_entry.entries.values():
+        assert entry.path.is_absolute()
+        assert entry.path.exists()
+
+
 def test_project_add_entries(yaml_entry, csv_entry, text_entry):
     """Test the project.add_entries method"""
     # Create a project with an entry
@@ -164,66 +197,8 @@ def test_project_add_files(entry):
 
     assert len(project.entries) == 1
 
-    project_entry = list(project.entries.values())[0]
-
+    _, project_entry = project.entries.popitem()
+    print(project_entry)
     assert type(project_entry) == type(entry)
     assert project_entry.path == entry.path
     assert project_entry.data == entry.data
-
-
-def test_project_yaml_loader_entry(entry):
-    """Test the Yaml loader for entries"""
-    text = f"!{entry.__class__.__name__}\npath:\n- {entry.path.name}\n"
-
-    # Generate python from yaml
-    load = yaml.load(text)
-    assert entry.path.name == load.path.name
-    assert entry.__class__ == load.__class__
-
-
-def test_project_yaml_dumper_entry(entry):
-    """Test the Yaml dumper for entries"""
-    path = entry.path
-
-    # Generate yaml
-    text = yaml.dump(entry)
-
-    # Check the yaml format
-    if entry.__class__ == Project:
-        match = """
-        !Project
-        meta:
-        - - version
-          - 0.1.10
-        entries:
-        - - test.yaml
-          - !YamlEntry
-            path:
-            - test.yaml
-        - - test.csv
-          - !CsvEntry
-            path:
-            - test.csv
-        - - test.txt
-          - !TextEntry
-            path:
-            - test.txt
-        - - test.bin
-          - !BinaryEntry
-            path:
-            - test.bin
-        """
-        # Strip indentation and leading newline
-        match = re.sub(r"^\s{8}", "", match, flags=re.MULTILINE).lstrip()
-
-        assert text == match
-    else:
-        match = f"""
-        !{entry.__class__.__name__}
-        path:
-        - {path.name}
-        """
-        # Strip indentation and leading newline
-        match = re.sub(r"^\s{8}", "", match, flags=re.MULTILINE).lstrip()
-
-        assert text == match

@@ -209,6 +209,101 @@ class Project(YamlEntry):
             # Name and place the entry in the entries dict
             self.entries[str(name)] = entry
 
+    def to_absolute_paths(self):
+        """Set the paths of entries to absolute paths
+
+        (reverse of to_absolute_paths)
+
+        Raises
+        ------
+        ValueError
+            Raised if a absolute path cannot be determined
+        """
+        # Retrieve the project parent directory. A project path is needed to calculate
+        # absolute paths
+        if self.path is None:
+            return
+        project_parent = self.path.parent
+
+        # Retrieve the paths of entries and convert them to absolute paths
+        paths = []
+        for entry in self.entries.values():
+
+            if entry.path is None:
+                # If the entry does not have a path, there's nothing that can be done
+                paths.append(None)
+
+            # Only convert paths that aren't already absolute
+            elif not entry.path.is_absolute():
+                # Convert paths to absolute paths by pre-pending the project's parent
+                path = project_parent / entry.path
+                paths.append(path)
+
+            else:
+                # Add the path unmodified
+                paths.append(entry.path)
+
+            # See if the entry has a 'to_absolute_paths'--i.e. it's a Project
+            if hasattr(entry, "to_absolute_paths"):
+                entry.to_absolute_paths()
+
+        # Atomically replace the paths
+        for entry, path in zip(self.entries.values(), paths):
+            if path is None:
+                continue
+            entry.path = path
+
+    def to_relative_paths(self, walk_up: bool = False):
+        """Set the paths of entries as relative paths to the project's path
+
+        (reverse of to_relative_paths)
+
+        Parameters
+        ----------
+        walk_up
+            When walk_up is False (the default), the path must start with other.
+            When the argument is True, .. entries may be added to form the relative
+            path (see: https://docs.python.org/3/library/pathlib.html)
+
+        Raises
+        ------
+        ValueError
+            Raised if a relative path cannot be determined
+        """
+        # Retrieve the project parent directory. A project path is needed to calculate
+        # relative paths.
+        if self.path is None:
+            return
+        project_parent = self.path.parent
+
+        # Retrieve the paths of entries and convert them to relative paths
+        paths = []
+        for entry in self.entries.values():
+
+            if entry.path is None:
+                # If the entry does not have a path, there's nothing that can be done
+                paths.append(None)
+
+            # Only convert paths that are absolute paths
+            elif entry.path.is_absolute():
+                # Convert paths to absolute paths by pre-pending the project's parent
+                path = entry.path.relative_to(project_parent, walk_up=walk_up)
+                paths.append(path)
+
+            else:
+                # Add the path unmodified
+                paths.append(entry.path)
+
+            # See if the entry has a 'to_relative_paths'--i.e. it's a Project
+            if hasattr(entry, "to_relative_paths"):
+                entry.to_relative_paths(walk_up=walk_up)
+
+        # Atomically replace the paths
+        for entry, path in zip(self.entries.values(), paths):
+            if path is None:
+                continue
+            entry.path = path
+
     def add_entries(self, *entries: EntryAddedType):
         """Add entries to a project"""
         for value in entries:
@@ -437,4 +532,5 @@ def project_constructor(loader: yaml.BaseLoader, node):
 
     mapping = loader.construct_mapping(node, deep=True)
     mapping = tuple_to_dict(mapping)  # Convert tree of tuples to tree of OrderedDict
+    print("path:", mapping.get("path", None))
     return construct_project(mapping)
