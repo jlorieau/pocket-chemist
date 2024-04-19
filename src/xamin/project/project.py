@@ -56,15 +56,6 @@ class Project(YamlEntry):
         entries_len = len(entries)
         return f"{cls_name}(path={name}, entries={entries_len})"
 
-    def __eq__(self, other):
-        """Test the equivalence of two projects"""
-        conditions = (
-            super().__eq__(other),  # parent are equal
-            self.meta == getattr(other, "meta", None),  # same meta
-            self.entries == getattr(other, "entries", None),  # same entries
-        )
-        return all(conditions)
-
     @classmethod
     def is_type(
         cls, path: Path, hint: HintType = None, loader: t.Optional[yaml.Loader] = None
@@ -380,7 +371,15 @@ def project_representer_no_relpath(*args, **kwargs):
 
 
 def project_constructor(loader: yaml.BaseLoader, node):
-    """Deserializer (loader) for a Project from yaml"""
+    """Deserializer (loader) for a Project from yaml
+
+    Parameters
+    ----------
+    loader
+        The YAML loader class to use to produce the YAML representation
+    node
+        The YAML node to convert to a project
+    """
 
     # Get all the entry subclasses
     sub_classes = {("!" + cls.__name__): cls for _, cls in Entry.subclasses()}
