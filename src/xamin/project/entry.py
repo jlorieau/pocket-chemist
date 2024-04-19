@@ -1,9 +1,8 @@
-"""Entry abstract base class and concrete Base class
+"""Entry base class and exceptions definition.
 """
 
 import typing as t
 import pickle
-import inspect
 from abc import ABC, abstractmethod
 from pathlib import Path
 from hashlib import sha256
@@ -36,7 +35,8 @@ class FileChanged(EntryException):
 
 
 class Entry(ABC, t.Generic[T]):
-    """A file entry in a project"""
+    """Entry base class to manage serializing/deserializing data from files and tracking
+    changes and loading of data."""
 
     #: The path of the file
     path: t.Optional[Path] = None
@@ -244,11 +244,20 @@ class Entry(ABC, t.Generic[T]):
         elif self.path.exists() and (self._data_mtime is None or self._data is None):
             return state(True, f"File path exists, but not yet loaded: '{self.path}'")
 
-        elif self._data_mtime < self.path.stat().st_mtime:
-            return state(True, "The data mtime is older than the file mtime")
+        elif self.is_file_newer:
+            return state(True, "The file's mtime is newer than the loaded data mtime")
 
         else:
             return state(False, "The data mtime is as new as the file's mtime")
+
+    @property
+    def is_file_newer(self):
+        """Determine whether the file is newer than the data that was loaded from it."""
+        return (
+            self.path is not None
+            and self._data_mtime is not None
+            and self._data_mtime < self.path.stat().st_mtime
+        )
 
     def reset_mtime(self):
         """Update the mtime of the loaded data (self._data_mtime) to equal that of
@@ -373,19 +382,42 @@ class Entry(ABC, t.Generic[T]):
         return serialized
 
     def pre_load(self, *args, **kwargs):
-        """Before loading data, perform actions, like setting a default, if needed."""
+        """Before loading data, perform actions, like setting a default, if needed.
+
+        Raises
+        ------
+        FileChanged
+            Raised if the source file has been updated since the data was loaded from
+            it, and there are unsaved changes. Reloading at this point would overwrite
+            the changes made by the user to self.data.
+        """
         if not hasattr(self, "_data"):
             self._data = self.default_data()
 
+        if self.is_file_newer and self.is_unsaved:
+            raise FileChanged(
+                f"The file '{self.path}' is newer than the data, but there are "
+                f"unsaved changes in the data"
+            )
+
     def post_load(self):
         """After successfully loading data, perform actions, like resetting the
-        hash and mtime,"""
+        hash and mtime.
+
+        """
         self.reset_hash()
         self.reset_mtime()
 
     def load(self, *args, **kwargs):
         """Load and return the data (self._data) or return a default data instance,
         if the data cannot be loaded from a file.
+
+        Raises
+        ------
+        FileChanged
+            Raised if the source file has been updated since the data was loaded from
+            it, and there are unsaved changes. Reloading at this point would overwrite
+            the changes made by the user to self.data.
         """
         # Perform check
         self.pre_load(*args, **kwargs)

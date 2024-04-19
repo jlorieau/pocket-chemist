@@ -7,6 +7,7 @@ import yaml
 import pytest
 
 from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry, YamlEntry, Project
+from xamin.utils.dict import recursive_update
 
 
 @pytest.fixture
@@ -62,29 +63,29 @@ def project_entry(tmp_path, yaml_entry, csv_entry, text_entry, binary_entry) -> 
 
 
 @pytest.fixture
-def extra_data():
-    """Retrieve extra data for different entry types"""
+def add_extra():
+    """Add extra data to the entry"""
 
     def _extra(entry):
         entry_type = type(entry)
 
         if entry_type == TextEntry:
-            return "some extra stuff"
+            entry.data += "some extra stuff"
         elif entry_type == BinaryEntry:
-            return b"some extra stuff"
+            entry.data += b"some extra stuff"
         elif entry_type == CsvEntry:
-            return [[10, 11, 12, 13, 14, 15]]
+            entry.data += [[10, 11, 12, 13, 14, 15]]
         elif entry_type == YamlEntry:
-            return {"e": 6, "f": 6}
+            recursive_update(entry.data, {"e": 6, "f": 6})
         elif entry_type == Project:
-            return {"meta": {"new": "value"}}
+            recursive_update(entry.data, {"meta": {"new": "value"}})
         else:
             raise NotImplementedError(
                 f"Extra data for class "
                 f"'{entry.__class__.__name__}' is not yet implement"
             )
 
-    _extra.__doc__ = extra_data.__doc__
+    _extra.__doc__ = add_extra.__doc__
     return _extra
 
 

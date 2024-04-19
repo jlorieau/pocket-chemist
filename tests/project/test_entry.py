@@ -4,8 +4,14 @@ import inspect
 from copy import deepcopy
 
 import pytest
-from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry, MissingPath
-from xamin.utils.dict import recursive_update
+from xamin.project import (
+    Entry,
+    TextEntry,
+    BinaryEntry,
+    CsvEntry,
+    MissingPath,
+    FileChanged,
+)
 
 
 def test_entry_suclasses():
@@ -36,6 +42,7 @@ def test_entry_setstate(entry):
     loaded = entry.__class__(path=None)
     state = entry.__getstate__()
     loaded.__setstate__(state)
+
     assert entry == loaded
 
 
@@ -73,11 +80,8 @@ def test_entry_no_path(entry_cls):
         entry.save()
 
 
-def test_is_unsaved(entry, extra_data):
+def test_is_unsaved(entry, add_extra):
     """Test the Entry is_unsaved property"""
-    # Load the extra data for entry
-    extra = extra_data(entry)
-
     # Data should not be changed before the data method loads it
     assert not entry.is_unsaved
 
@@ -86,19 +90,17 @@ def test_is_unsaved(entry, extra_data):
     assert not entry.is_unsaved
 
     # Modify it and change that the text_entry has changed
-    if isinstance(extra, dict):
-        recursive_update(entry.data, extra)
-    else:
-        entry.data += extra
+    add_extra(entry)
 
     assert entry.is_unsaved
 
     # Reset it and the is_unsaved flag should change
-    if isinstance(extra, dict):
+    if isinstance(entry.data, dict):
         entry.data.clear()
         entry.data.update(original_data)
     else:
         entry.data = original_data
+
     assert not entry.is_unsaved
 
 
@@ -107,10 +109,14 @@ def test_is_stale(entry):
     # Create a new, empty entry
     new = entry.__class__()
 
+    # Make sure the new entry is a defaul
+    if hasattr(new, "_data"):
+        del new._data
+
     # Before data is loaded, the entry is_stale--i.e. it needs to be loaded
-    assert new.is_stale
-    assert not hasattr(new, "_date")  # No data, it needs to be loaded
     assert new.path is None  # No path specified, data needs to be loaded
+    assert not hasattr(new, "_data")  # No data specified
+    assert new.is_stale
 
     # Load the data from a path, and the new entry should no longer be stale
     new.path = entry.path
@@ -141,11 +147,52 @@ def test_entry_load(entry):
         raise NotImplementedError("Other data shapes are not yet implemented")
 
 
-def test_entry_save(entry, extra_data):
-    """Test the Entry save method"""
+@pytest.mark.parametrize("order", ("forward", "backward"))
+def test_entry_load_file_newer(entry, add_extra, order):
+    """Test the re-loading of a file that has changed when the data has been updated"""
+    # (Re-)load the data
+    entry.load()
 
-    # Load the extra data for entry
-    extra = extra_data(entry)
+    # 1. Check that entry has loaded data and a hash
+    assert entry._data_mtime
+    assert entry._loaded_hash
+
+    assert not entry.is_file_newer
+    assert not entry.is_unsaved
+
+    if order == "forward":
+        # 2. Touch the file (is_file_newer is True, is_unsaved is False)
+        entry.path.touch()
+
+        assert entry.is_file_newer
+        assert not entry.is_unsaved
+
+        # 3. Change the data (is_file_newer is False, is_unsaved is True)
+        #    This triggers an update before adding the data, so is_file_newer is False
+        add_extra(entry)
+
+        assert not entry.is_file_newer
+        assert entry.is_unsaved
+
+    else:
+        # 2. Change the data (is_file_newer is False, is_unsaved is True)
+        add_extra(entry)
+
+        assert not entry.is_file_newer
+        assert entry.is_unsaved
+
+        entry.path.touch()
+
+        assert entry.is_file_newer
+        assert entry.is_unsaved
+
+        # 4. Try loading and check for exception
+        with pytest.raises(FileChanged):
+            entry.load()
+
+
+def test_entry_save(entry, add_extra):
+    """Test the Entry save method"""
 
     # Get the current mtime of the file to test when it is modified
     entry.data  # make sure the data is loaded the data
@@ -158,10 +205,7 @@ def test_entry_save(entry, extra_data):
     assert entry.path.stat().st_mtime == start_mtime
 
     # Changing the data produces unsaved changes, which can be saved
-    if isinstance(extra, dict):
-        recursive_update(entry.data, extra)
-    else:
-        entry.data += extra
+    add_extra(entry)
 
     assert entry.is_unsaved
     assert not entry.is_stale  # entry's data is newer than the file
