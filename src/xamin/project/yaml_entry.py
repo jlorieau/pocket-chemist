@@ -45,7 +45,8 @@ class YamlEntry(Entry[YamlType]):
             return False
 
         # Remove the last line of the hint
-        block = "\n".join(hint.splitlines()[:-1])  #
+        block = "\n".join(hint.splitlines()[:-1])
+
         # Try parsing this block into an OrderedDict
         try:
             data = yaml.load(block, Loader=loader)
