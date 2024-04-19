@@ -73,12 +73,25 @@ class Entry(ABC, t.Generic[T]):
         return f"{cls_name}(path={name})"
 
     def __eq__(self, other):
-        """Test the equivalence of two entries"""
-        conditions = (
-            self.__class__ == other.__class__,  # same class
-            self.path == getattr(other, "path", None),  # same path
-        )
-        return all(conditions)
+        """Test the equivalence of two entries.
+
+        This method does not check self._data because this can be loaded from the path.
+        """
+        equal = True
+
+        if self.__class__ != other.__class__:
+            # different classes
+            equal &= False
+
+        if self.path is not None and getattr(other, "path", None) is not None:
+            if self.path.absolute() != other.path.absolute():
+                # If paths available but their absolute paths are not the same
+                equal &= False
+        elif self.path != getattr(other, "path", None):
+            # If paths are unavaible, then they should match
+            equal &= False
+
+        return equal
 
     def __getstate__(self) -> t.Dict:
         """Get a copy of the current state for serialization"""
