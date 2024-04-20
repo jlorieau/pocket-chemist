@@ -119,6 +119,17 @@ class Project(YamlEntry):
         """The Entry instances for the project"""
         return self.data["entries"]
 
+    def post_load(self):
+        """Extends the Entry.post_load method to set sub-entries to absolute paths"""
+        # Make sure that the entries paths are absolute so that files can be found
+        try:
+            self.to_absolute_paths()
+        except ValueError:
+            logger.error(
+                f"Project '{self}' unable to convert entries path to absolute paths"
+            )
+        return super().post_load()
+
     def load(self, *args, **kwargs):
         """Overrides parent's load method to load the deserialized data to
         'self' instead of 'self._data'."""
@@ -137,6 +148,18 @@ class Project(YamlEntry):
 
         # Reset flags
         self.post_load(*args, **kwargs)
+
+    def pre_save(self, *args, **kwargs):
+        """Extends the Entry.pre_save method to set sub-entries to relative paths"""
+        # Set to relative paths before save in case the project and sub-entry files
+        # are moved to a new directory on a new computer
+        try:
+            self.to_relative_paths()
+        except ValueError:
+            logger.error(
+                f"Project '{self}' unable to convert entries path to relative paths"
+            )
+        return super().pre_save(*args, **kwargs)
 
     def save(self, overwrite: bool = False, *args, **kwargs):
         """Overrides parent's save method to save the serialized 'self' instead of
@@ -225,9 +248,12 @@ class Project(YamlEntry):
             return
         project_parent = self.path.parent
 
+        # Get entries directly to avoid triggering a load
+        entries = getattr(self, "_data", dict()).get("entries", dict())
+
         # Retrieve the paths of entries and convert them to absolute paths
         paths = []
-        for entry in self.entries.values():
+        for entry in entries.values():
 
             if entry.path is None:
                 # If the entry does not have a path, there's nothing that can be done
@@ -248,7 +274,7 @@ class Project(YamlEntry):
                 entry.to_absolute_paths()
 
         # Atomically replace the paths
-        for entry, path in zip(self.entries.values(), paths):
+        for entry, path in zip(entries.values(), paths):
             if path is None:
                 continue
             entry.path = path
@@ -276,9 +302,12 @@ class Project(YamlEntry):
             return
         project_parent = self.path.parent
 
+        # Get entries directly to avoid triggering a load
+        entries = getattr(self, "_data", dict()).get("entries", dict())
+
         # Retrieve the paths of entries and convert them to relative paths
         paths = []
-        for entry in self.entries.values():
+        for entry in entries.values():
 
             if entry.path is None:
                 # If the entry does not have a path, there's nothing that can be done
@@ -299,7 +328,7 @@ class Project(YamlEntry):
                 entry.to_relative_paths(walk_up=walk_up)
 
         # Atomically replace the paths
-        for entry, path in zip(self.entries.values(), paths):
+        for entry, path in zip(entries.values(), paths):
             if path is None:
                 continue
             entry.path = path
@@ -383,9 +412,7 @@ def path_constructor(loader: yaml.BaseLoader, node):
     return Path(*sequence) if sequence is not None else None
 
 
-def project_representer(
-    dumper: yaml.BaseDumper, project: Project, use_relpath: bool = True
-):
+def project_representer(dumper: yaml.BaseDumper, project: Project):
     """Deserializer (loader) for a Project from yaml
 
     Note: Access project._data instead of project.data/project.meta/project.entries
@@ -398,19 +425,11 @@ def project_representer(
         The YAML dumper class to use to produce the YAML representation
     project
         The project entry instance to represent in YAML
-    use_relpath
-        If True (default), set the paths of entries relative to the project's parent
-        path (director).
-        If False, do not change the paths of entries
     """
 
-    def project_mapping(project: Project, relpath: t.Optional[Path] = None) -> t.Tuple:
+    def project_mapping(project: Project) -> t.Tuple:
         """Convert a project and its entries into and python mapping that can be
         converted to a YAML mapping"""
-        # Prepare the entries, using the project's path
-        if relpath is None:
-            relpath = project.path.parent if project.path is not None else None
-
         # Get the project data directly rather than from the data/meta/entries methods
         # This avoids a check to see if the data is stale and a possible re-load of
         # the data on save
@@ -426,21 +445,9 @@ def project_representer(
             state = entry.__getstate__()
             cls_name = entry.__class__.__name__
 
-            # Convert the path relative to this project's path
-            if (
-                use_relpath
-                and relpath is not None
-                and "path" in state
-                and isinstance(state["path"], Path)
-            ):
-                try:
-                    state["path"] = state["path"].relative_to(relpath)
-                except:
-                    pass
-
             # Create a mapping of the state
             if isinstance(entry, Project):
-                r = (name, (f"!{cls_name}", project_mapping(entry, relpath)))
+                r = (name, (f"!{cls_name}", project_mapping(entry)))
             else:
                 r = (name, (f"!{cls_name}", tuple(state.items())))
 
@@ -458,11 +465,6 @@ def project_representer(
 
     # Create a function that pull out python types and can be used recursively
     return dumper.represent_mapping(*project_mapping(project))
-
-
-def project_representer_no_relpath(*args, **kwargs):
-    """A project_representer that does not change the paths of entries"""
-    return project_representer(*args, **kwargs, use_relpath=False)
 
 
 def project_constructor(loader: yaml.BaseLoader, node):
@@ -532,5 +534,4 @@ def project_constructor(loader: yaml.BaseLoader, node):
 
     mapping = loader.construct_mapping(node, deep=True)
     mapping = tuple_to_dict(mapping)  # Convert tree of tuples to tree of OrderedDict
-    print("path:", mapping.get("path", None))
     return construct_project(mapping)

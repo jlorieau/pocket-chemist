@@ -11,7 +11,6 @@ from xamin.project.project import (
     path_constructor,
     path_representer,
     project_representer,
-    project_representer_no_relpath,
     project_constructor,
 )
 
@@ -52,7 +51,6 @@ def test_project_constructor_representer(text_entry):
     dumper = yaml.SafeDumper
     dumper.add_representer(pathlib.PosixPath, path_representer)  # Needed for paths
     dumper.add_representer(pathlib.WindowsPath, path_representer)  # Needed for paths
-    dumper.add_representer(Project, project_representer_no_relpath)
 
     # Setup the loader
     loader = yaml.SafeLoader
@@ -66,7 +64,11 @@ def test_project_constructor_representer(text_entry):
     load = yaml.load(text, Loader=loader)
     assert project.path == load.path
     assert project.meta == load.meta
-    assert project.entries["test.txt"] == load.entries["test.txt"]  ##
+
+    # Make sure the project entries have absolute paths to match the loaded project
+    project.to_absolute_paths()
+
+    assert project.entries["test.txt"] == load.entries["test.txt"]
     assert project.entries == load.entries
 
     assert project == load
@@ -80,7 +82,8 @@ def test_project_constructor_representer(text_entry):
 
     # Try to recreate the project from the yaml text
     load = yaml.load(text, Loader=loader)
-    assert project != load
+
+    assert project == load
     assert project.path == load.path
     assert project.meta == load.meta
     assert len(project.entries) == len(load.entries)
