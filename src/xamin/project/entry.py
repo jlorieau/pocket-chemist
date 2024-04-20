@@ -44,8 +44,6 @@ class Entry(ABC, t.Generic[T]):
     #: Settings to change the default behavior
     hint_size = Setting(2048, desc="Size (in bytes) of the hint to read from the file")
 
-    text_encoding = Setting("utf-8", desc="Default text file encoding")
-
     #: The encoding for serialize data, if it's in text format
     #: If it's binary data, then the encoding should be the bytes type
     encoding = "utf-8"
@@ -161,7 +159,10 @@ class Entry(ABC, t.Generic[T]):
 
         # Try decoding the bytes to text
         try:
-            return bytes.decode(cls.text_encoding)
+            text = bytes.decode(cls.encoding)
+
+            # Remove the last line of the hint
+            return "\n".join(text.splitlines()[:-1])
         except:
             return bytes
 
