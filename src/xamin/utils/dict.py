@@ -5,10 +5,37 @@ Utilities for dicts
 import typing as t
 from collections import OrderedDict
 
-__all__ = ("tuple_to_dict", "recursive_update")
+__all__ = ("odict_to_tuple", "tuple_to_odict", "recursive_update")
 
 
-def tuple_to_dict(item) -> t.OrderedDict:
+def odict_to_tuple(odict: t.OrderedDict) -> t.Tuple:
+    """Convert an ordered dict tree into a tree of tuple of tuples
+
+    Parameters
+    ----------
+    odict
+        The OrderedDict to convert
+
+    Returns
+    -------
+    tuple_tree
+        The converted tuple tree
+
+    Examples
+    --------
+    >>> odict = OrderedDict()
+    >>> odict['a'] = 1
+    >>> odict['b'] = OrderedDict((('d', 4), ('c', 3)))
+    >>> odict_to_tuple(odict)
+    (('a', 1), ('b', (('d', 4), ('c', 3))))
+    """
+    return tuple(
+        (k, v) if not isinstance(v, t.OrderedDict) else (k, odict_to_tuple(v))
+        for k, v in odict.items()
+    )
+
+
+def tuple_to_odict(item: t.Tuple) -> t.OrderedDict:
     """Convert a tree of tuples to an ordered dict
 
     Parameters
@@ -18,18 +45,18 @@ def tuple_to_dict(item) -> t.OrderedDict:
 
     Returns
     -------
-    tree
-        The ordered dict tree
+    odict_tree
+        The converted ordered dict tree
 
     Examples
     --------
-    >>> tuple_to_dict((
+    >>> tuple_to_odict((
     ...  ('a', 1), ('b', 2), ('c', 3)
     ...  ))
     OrderedDict({'a': 1, 'b': 2, 'c': 3})
-    >>> tuple_to_dict(('a', 1))
+    >>> tuple_to_odict(('a', 1))
     OrderedDict({'a': 1})
-    >>> tuple_to_dict((
+    >>> tuple_to_odict((
     ...  ('a', (('a1', 1), ('a2', 2), ('a3', 3))),
     ...  ('b', ('one', 'two')),
     ...  ('c', (1, 2, 3))
@@ -45,13 +72,13 @@ def tuple_to_dict(item) -> t.OrderedDict:
 
     if len(item) >= 2 and all(hasattr(i, "__len__") and len(i) == 2 for i in item):
         # ex: (('a', 1), ('b', 2), ('c', 2))
-        return OrderedDict(tuple((k, tuple_to_dict(v)) for k, v in item))
+        return OrderedDict(tuple((k, tuple_to_odict(v)) for k, v in item))
     elif len(item) == 2:
         # ex: ('a', 1)
-        return OrderedDict(((item[0], tuple_to_dict(item[1])),))
+        return OrderedDict(((item[0], tuple_to_odict(item[1])),))
     elif len(item) == 1:
         # ex: (('a', 1),)
-        return tuple_to_dict(item[0])
+        return tuple_to_odict(item[0])
     else:
         return item
 
