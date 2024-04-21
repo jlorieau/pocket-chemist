@@ -35,7 +35,7 @@ def odict_to_tuple(odict: t.OrderedDict) -> t.Tuple:
     )
 
 
-def tuple_to_odict(item: t.Tuple) -> t.OrderedDict:
+def tuple_to_odict(item: t.Tuple | t.List) -> t.OrderedDict:
     """Convert a tree of tuples to an ordered dict
 
     Parameters
