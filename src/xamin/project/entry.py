@@ -154,18 +154,6 @@ class Entry(ABC, t.Generic[T]):
             A hint with 'hint_size' bytes of the file given by the path, or
             None if a hint could not be retrieved. This can happen if the file
             is not readable or doesn't exist.
-
-        Examples
-        --------
-        >>> p = Path(__file__)  # this .py text file
-        >>> hint = Entry.get_hint(p)
-        >>> type(hint)
-        <class 'str'>
-        >>> import sys
-        >>> e = Path(sys.executable)  # Get the python interpreter executable
-        >>> hint = Entry.get_hint(e)
-        >>> type(hint)
-        <class 'bytes'>
         """
         # Read the first 'hint_size' bytes from the file
         try:
