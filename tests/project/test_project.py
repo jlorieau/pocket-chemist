@@ -84,10 +84,7 @@ def test_project_constructor_representer(tmp_path, text_entry):
 
     # Create a project with entries
     project_filepath = text_entry.path.with_suffix(".proj")
-    project = Project(path=None, entries=(text_entry,))
-
-    # Save the project
-    project.path = project_filepath
+    project = Project(path=project_filepath, entries=(text_entry,))
 
     # Setup the dumper
     dumper = yaml.SafeDumper
