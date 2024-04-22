@@ -40,6 +40,7 @@ class YamlEntry(Entry[YamlType]):
         """
         hint = hint if hint is not None else cls.get_hint(path)
         loader = loader if loader is not None else cls.get_loader()
+
         # Yaml has to be text strings--not binary
         if not isinstance(hint, str):
             return False
