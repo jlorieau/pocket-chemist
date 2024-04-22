@@ -82,9 +82,11 @@ def test_project_constructor_representer(tmp_path, text_entry):
     """Test the project_constructure and project_representer functions"""
     test_file = tmp_path / "test.proj"
 
-    # Create a project with entries
+    # Create a project with entries. Set the path after create to avoid loading
+    # from a non-existant file and raising an exception
     project_filepath = text_entry.path.with_suffix(".proj")
-    project = Project(path=project_filepath, entries=(text_entry,))
+    project = Project(path=None, entries=(text_entry,))
+    project.path = project_filepath
 
     # Setup the dumper
     dumper = yaml.SafeDumper
