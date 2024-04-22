@@ -15,7 +15,7 @@ import yaml
 from loguru import logger
 from thatway import Setting
 
-from .entry import Entry, HintType
+from .entry import Entry, Hint
 from .yaml_entry import YamlEntry
 from ..utils.path import is_root
 from .. import __version__
@@ -135,17 +135,21 @@ class Project(YamlEntry):
 
     @classmethod
     def is_type(
-        cls, path: Path, hint: HintType = None, loader: t.Optional[yaml.Loader] = None
+        cls,
+        path: Path,
+        hint: Hint | None = None,
+        loader: t.Optional[yaml.Loader] = None,
     ) -> bool:
         """Overrides YamlEntry parent class method to use a custom loader for project
         entries."""
         hint = hint if hint is not None else cls.get_hint(path)
+        text = hint.utf_8
 
         # Project files start with a "!Project" tag followed by "meta" entry. e.g.
         # !Project
         # meta:
-        if isinstance(hint, str):
-            stripped = re.sub(r"#.*", "", hint).strip()  # Remove comments, whitespace
+        if text is not None:
+            stripped = re.sub(r"#.*", "", text).strip()  # Remove comments, whitespace
             return re.match("!Project\n\s*(meta|entries):", stripped)
         else:
             return False

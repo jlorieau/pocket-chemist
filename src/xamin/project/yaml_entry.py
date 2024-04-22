@@ -6,7 +6,7 @@ import typing as t
 import yaml
 from pathlib import Path
 
-from .entry import Entry, HintType
+from .entry import Entry, Hint
 
 __all__ = ("YamlEntry", "YamlType")
 
@@ -18,7 +18,10 @@ class YamlEntry(Entry[YamlType]):
 
     @classmethod
     def is_type(
-        cls, path: Path, hint: HintType = None, loader: t.Optional[yaml.Loader] = None
+        cls,
+        path: Path,
+        hint: Hint | None = None,
+        loader: t.Optional[yaml.Loader] = None,
     ) -> bool:
         """Overrides TextEntry parent class method to test whether a path or hint
         points to a YAML file.
@@ -42,11 +45,12 @@ class YamlEntry(Entry[YamlType]):
         loader = loader if loader is not None else cls.get_loader()
 
         # Yaml has to be text strings--not binary
-        if not isinstance(hint, str):
+        text = hint.utf_8
+        if text is None:
             return False
 
         # Remove the last line of the hint
-        block = "\n".join(hint.splitlines()[:-1])
+        block = "\n".join(text.splitlines()[:-1])
 
         # Try parsing this block into an OrderedDict
         try:

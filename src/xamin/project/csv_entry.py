@@ -8,9 +8,8 @@ from pathlib import Path
 from io import StringIO
 
 from thatway import Setting
-from loguru import logger
 
-from .entry import Entry, HintType
+from .entry import Entry, Hint
 
 
 __all__ = ("CsvEntry",)
@@ -26,7 +25,7 @@ class CsvEntry(Entry[t.List]):
     _dialect: t.Optional[csv.Dialect] = None
 
     @classmethod
-    def is_type(cls, path: Path, hint: HintType = None) -> bool:
+    def is_type(cls, path: Path, hint: Hint | None = None) -> bool:
         """Overrides  parent class method to test whether path is a CsvEntry."""
         hint = hint if hint is not None else cls.get_hint(path)
         try:
@@ -38,10 +37,10 @@ class CsvEntry(Entry[t.List]):
             return False
 
     @classmethod
-    def get_dialect(cls, path: Path, hint: HintType = None) -> csv.Dialect:
+    def get_dialect(cls, path: Path, hint: Hint | None = None) -> csv.Dialect:
         """Retrieve the dialect for the csv file"""
         hint = cls.get_hint(path=path) if hint is None else hint
-        return csv.Sniffer().sniff(hint, delimiters=cls.default_delimiters)
+        return csv.Sniffer().sniff(hint.utf_8, delimiters=cls.default_delimiters)
 
     @property
     def shape(self) -> t.Tuple[int, int]:

@@ -3,7 +3,7 @@
 import typing as t
 from pathlib import Path
 
-from .entry import Entry, HintType
+from .entry import Entry, Hint
 
 __all__ = ("BinaryEntry",)
 
@@ -14,21 +14,22 @@ class BinaryEntry(Entry[bytes]):
     encoding = bytes
 
     @classmethod
-    def is_type(cls, path: Path, hint: HintType = None) -> bool:
+    def is_type(cls, path: Path, hint: Hint | None = None) -> bool:
         """Overrides  parent class method to test whether path is a BinaryEntry.
 
         Examples
         --------
         >>> p = Path(__file__)  # this .py text file
-        >>> TextEntry.is_type(p)
+        >>> BinaryEntry.is_type(p)
         False
         >>> import sys
         >>> e = Path(sys.executable)  # Get the python interpreter executable
-        >>> TextEntry.is_type(e)
+        >>> BinaryEntry.is_type(e)
         True
         """
         hint = hint if hint is not None else cls.get_hint(path)
-        return isinstance(hint, bytes)
+
+        return False if hint.utf_8 else True
 
     def default_data(self):
         return b""

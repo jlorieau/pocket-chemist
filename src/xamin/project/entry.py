@@ -4,6 +4,7 @@
 import typing as t
 import pickle
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 from hashlib import sha256
 
@@ -12,13 +13,28 @@ from loguru import logger
 
 from ..utils.classes import all_subclasses
 
-__all__ = ("Entry", "HintType", "MissingPath", "FileChanged")
-
-# The types that a 'hint' can adopt
-HintType = t.Union[t.Text, t.ByteString, None]
+__all__ = ("Entry", "MissingPath", "FileChanged")
 
 # Generic type annotation
 T = t.TypeVar("T")
+
+
+#: A named tuple
+@dataclass(slots=True)
+class Hint:
+    """A dataclass to store data hints from a file in different formats"""
+
+    #: The data hint in bytes
+    bytes: bytes
+
+    @property
+    def utf_8(self) -> str | None:
+        """Convert the bytes hint into utf-8 text, if possible, or None, if not
+        possible."""
+        try:
+            return self.bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            return None
 
 
 class EntryException(Exception):
@@ -124,8 +140,8 @@ class Entry(ABC, t.Generic[T]):
         return parent_depths[0] + 1 if parent_depths else 0
 
     @classmethod
-    def get_hint(cls, path: Path) -> t.Union[HintType]:
-        """Retrieve the hint bytes or text from the given path
+    def get_hint(cls, path: Path) -> Hint | None:
+        """Retrieve the hint bytes from the given path
 
         Parameters
         ----------
@@ -135,11 +151,9 @@ class Entry(ABC, t.Generic[T]):
         Returns
         -------
         hint
-            - The first 'hint_size' bytes of the file given by the path.
-            - If a text string (UTF-8) can be decoded, it will be returned.
-            - Otherwise a byte string will be returned.
-            - If the path doesn't point to a file or the file can't be read, the hint
-              is None
+            A hint with 'hint_size' bytes of the file given by the path, or
+            None if a hint could not be retrieved. This can happen if the file
+            is not readable or doesn't exist.
 
         Examples
         --------
@@ -156,22 +170,13 @@ class Entry(ABC, t.Generic[T]):
         # Read the first 'hint_size' bytes from the file
         try:
             with open(path, "rb") as f:
-                bytes = f.read(cls.hint_size)
+                return Hint(bytes=f.read(cls.hint_size))
         except:
             return None
 
-        # Try decoding the bytes to text
-        try:
-            text = bytes.decode(cls.encoding)
-
-            # Remove the last line of the hint
-            return "\n".join(text.splitlines()[:-1])
-        except:
-            return bytes
-
     @classmethod
     @abstractmethod
-    def is_type(cls, path: Path, hint: HintType = None) -> bool:
+    def is_type(cls, path: Path, hint: Hint | None = None) -> bool:
         """Return True if path can be parsed as this Entry's type.
 
         Parameters
@@ -191,7 +196,7 @@ class Entry(ABC, t.Generic[T]):
 
     @classmethod
     def guess_type(
-        cls, path: Path, hint: HintType = None
+        cls, path: Path, hint: bytes | None = None
     ) -> t.Union[t.Type["Entry"], None]:
         """Try to guess the correct Entry class from the given path and (optional)
         hint.
@@ -212,12 +217,14 @@ class Entry(ABC, t.Generic[T]):
         # Must be a path type, if no hint is specified
         if isinstance(path, Path) or isinstance(path, str):
             path = Path(path)
-        elif hint is None:
-            # Can't figure out the type without a valid type or a valid hint
-            return None
 
         # Get the hint, if it wasn't specified
         hint = hint if hint is not None else cls.get_hint(path)
+
+        # Can't retrieve the hint and, therefore, can't figure out which entry
+        # type to use.
+        if hint is None:
+            return None
 
         # Find the best class from those with the highest class hierarchy level
         # i.e. the more subclassed, the more specific is a type
