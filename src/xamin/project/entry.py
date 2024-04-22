@@ -81,10 +81,13 @@ class Entry(ABC, t.Generic[T]):
             # different classes
             equal &= False
 
-        if self.path is not None and getattr(other, "path", None) is not None:
-            if self.path.absolute() != other.path.absolute():
-                # If paths available but their absolute paths are not the same
-                equal &= False
+        if (
+            self.path is not None
+            and getattr(other, "path", None) is not None
+            and self.path.absolute() != other.path.absolute()
+        ):
+            # If paths available but their absolute paths are not the same
+            equal &= False
         elif self.path != getattr(other, "path", None):
             # If paths are unavaible, then they should match
             equal &= False
@@ -95,7 +98,7 @@ class Entry(ABC, t.Generic[T]):
         """Get a copy of the current state for serialization"""
         return {"path": self.path}
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: t.Dict):
         """Set the state for the entry based on the given state copy"""
         self.path = state.get("path", None)
 
@@ -319,7 +322,7 @@ class Entry(ABC, t.Generic[T]):
         if getattr(self, "_data", None) is None:
             return ""
         elif isinstance(self._data, str):
-            return sha256(self._data.encode(self.text_encoding)).hexdigest()
+            return sha256(self._data.encode(self.encoding)).hexdigest()
         elif isinstance(self._data, bytes):
             return sha256(self._data).hexdigest()
         else:
