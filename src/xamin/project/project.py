@@ -1,13 +1,15 @@
 """
 A project containing data entries
+
+TODO: Move absolute/relative path business path to yaml constructor/representer
 """
 
 import typing as t
 import re
-from weakref import ref
 from pathlib import Path, PosixPath, WindowsPath
 from collections import OrderedDict
 from os import path
+from copy import deepcopy
 
 import yaml
 from loguru import logger
@@ -15,7 +17,6 @@ from thatway import Setting
 
 from .entry import Entry, HintType
 from .yaml_entry import YamlEntry
-from ..utils.dict import tuple_to_dict, recursive_update
 from ..utils.path import is_root
 from .. import __version__
 
@@ -43,6 +44,10 @@ class Project(YamlEntry):
     def __init__(self, *args, entries: EntryAddedType = (), **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Load default entries for meta and entries
+        self.meta
+        self.entries
+
         # populate initial entries
         self.add_entries(entries)
 
@@ -56,6 +61,78 @@ class Project(YamlEntry):
         entries_len = len(entries)
         return f"{cls_name}(path={name}, entries={entries_len})"
 
+    def __getstate__(self) -> t.Dict:
+        """Extend parent method (Entry) get state method to include Project data"""
+        # Get the paren't initial state
+        state = super().__getstate__()
+
+        # Retrieve the Project data that needs to be saved in the state
+        data = getattr(self, "_data", dict())
+        meta = data.get("meta", OrderedDict())
+        entries = data.get("entries", OrderedDict())
+
+        # Find the project.path parent directory
+        project_path = self.path.parent if self.path is not None else None
+
+        # Add entries to the state as an OrderedDict
+        state["entries"] = state.get("entries", dict())
+        state["entries"] = OrderedDict(state["entries"])
+
+        for name, entry in entries.items():
+            entry_state = state["entries"].setdefault(name, dict())
+
+            entry_state["class"] = entry.__class__.__name__
+            entry_state.update(entry.__getstate__())
+
+            # Convert the entries paths to relative paths, if possible
+            try:
+                path = entry_state["path"]
+                entry_state["path"] = path.relative_to(project_path)
+            except (ValueError, KeyError, AttributeError):
+                pass
+
+        # Add the data to the state
+        state["meta"] = deepcopy(meta)
+
+        return state
+
+    def __setstate__(self, state: t.Dict):
+        """Extend parent method (Entry) set state method with Project data"""
+        # Run the parent state
+        super().__setstate__(state)
+
+        # Retrieve the Project data to be updated with the state
+        data = getattr(self, "_data", dict())
+        meta = data.get("meta", OrderedDict())
+        entries = data.get("entries", OrderedDict())
+
+        # Update the meta data
+        meta_state = state.get("meta", OrderedDict())
+        meta.update(meta_state)
+
+        # Update the entries data
+        entries_state = state.get("entries", OrderedDict())
+        subclasses = {cls.__name__: cls for _, cls in self.subclasses()}
+        project_path = self.path.parent if self.path is not None else None
+
+        for name, entry_state in entries_state.items():
+
+            if "class" not in entry_state or entry_state["class"] not in subclasses:
+                continue
+            cls_name = entry_state["class"]
+            cls = subclasses[cls_name]
+
+            # Convert the entries paths to relative paths, if possible
+            try:
+                entry_state["path"] = (project_path / entry_state["path"]).absolute()
+            except (KeyError, ValueError, AttributeError, TypeError):
+                pass
+
+            entry = cls()
+            entry.__setstate__(entry_state)
+
+            entries[name] = entry
+
     @classmethod
     def is_type(
         cls, path: Path, hint: HintType = None, loader: t.Optional[yaml.Loader] = None
@@ -63,19 +140,15 @@ class Project(YamlEntry):
         """Overrides YamlEntry parent class method to use a custom loader for project
         entries."""
         hint = hint if hint is not None else cls.get_hint(path)
-        loader = cls.get_loader()
 
-        # Check that it matche's the parent's entry type
-        if not super().is_type(path, hint=hint, loader=loader):
-            return False
-
-        # A project file should always start with a "!Project" tag followed by
-        # "meta" entry
-        # subentry. e.g.
+        # Project files start with a "!Project" tag followed by "meta" entry. e.g.
         # !Project
         # meta:
-        stripped = re.sub(r"#.*", "", hint)  # Remove comments
-        return stripped.startswith("!Project\nmeta:")
+        if isinstance(hint, str):
+            stripped = re.sub(r"#.*", "", hint).strip()  # Remove comments, whitespace
+            return re.match("!Project\n\s*(meta|entries):", stripped)
+        else:
+            return False
 
     @classmethod
     def get_loader(cls, *args, **kwargs) -> yaml.BaseLoader:
@@ -83,7 +156,8 @@ class Project(YamlEntry):
         loader = super().get_loader(*args, **kwargs)
 
         # Add custom constructors to loader (see below)
-        loader.add_constructor("!path", path_constructor)
+        loader.add_constructor("!Path", path_constructor)
+        loader.add_constructor("!OrderedDict", odict_constructor)
         loader.add_constructor("!Project", project_constructor)
 
         return loader
@@ -96,6 +170,7 @@ class Project(YamlEntry):
         # Add custom representers to loader (see below)
         dumper.add_representer(PosixPath, path_representer)  # Needed for paths
         dumper.add_representer(WindowsPath, path_representer)  # Needed for paths
+        dumper.add_representer(OrderedDict, odict_representer)
         dumper.add_representer(Project, project_representer)
 
         return dumper
@@ -119,20 +194,10 @@ class Project(YamlEntry):
         """The Entry instances for the project"""
         return self.data["entries"]
 
-    def post_load(self):
-        """Extends the Entry.post_load method to set sub-entries to absolute paths"""
-        # Make sure that the entries paths are absolute so that files can be found
-        try:
-            self.to_absolute_paths()
-        except ValueError:
-            logger.error(
-                f"Project '{self}' unable to convert entries path to absolute paths"
-            )
-        return super().post_load()
-
     def load(self, *args, **kwargs):
         """Overrides parent's load method to load the deserialized data to
-        'self' instead of 'self._data'."""
+        'self' instead of 'self._data'.
+        """
         # Perform check
         self.pre_load(*args, **kwargs)
 
@@ -149,31 +214,24 @@ class Project(YamlEntry):
         # Reset flags
         self.post_load(*args, **kwargs)
 
-    def pre_save(self, *args, **kwargs):
-        """Extends the Entry.pre_save method to set sub-entries to relative paths"""
-        # Set to relative paths before save in case the project and sub-entry files
-        # are moved to a new directory on a new computer
-        try:
-            self.to_relative_paths()
-        except ValueError:
-            logger.error(
-                f"Project '{self}' unable to convert entries path to relative paths"
-            )
-        return super().pre_save(*args, **kwargs)
-
     def save(self, overwrite: bool = False, *args, **kwargs):
         """Overrides parent's save method to save the serialized 'self' instead of
         'self._data'."""
-        # Perform checks and raise exceptions
-        self.pre_save(overwrite=overwrite, *args, **kwargs)
+        try:
+            # Perform checks and raise exceptions
+            self.pre_save(overwrite=overwrite, *args, **kwargs)
 
-        # Save the data
-        if self.is_unsaved and self.path is not None:
-            serialized_self = self.serialize(self)
-            self.path.write_text(serialized_self, encoding=self.encoding)
+            # Save the data
+            if self.is_unsaved and self.path is not None:
+                serialized_self = self.serialize(self)
+                self.path.write_text(serialized_self, encoding=self.encoding)
 
-        # Resets flags
-        self.post_save(*args, **kwargs)
+        except Exception as e:
+            raise e
+
+        finally:
+            # Resets flags
+            self.post_save(*args, **kwargs)
 
     def assign_unique_names(self):
         """Assign unique names to this project's entries.
@@ -231,107 +289,6 @@ class Project(YamlEntry):
 
             # Name and place the entry in the entries dict
             self.entries[str(name)] = entry
-
-    def to_absolute_paths(self):
-        """Set the paths of entries to absolute paths
-
-        (reverse of to_absolute_paths)
-
-        Raises
-        ------
-        ValueError
-            Raised if a absolute path cannot be determined
-        """
-        # Retrieve the project parent directory. A project path is needed to calculate
-        # absolute paths
-        if self.path is None:
-            return
-        project_parent = self.path.parent
-
-        # Get entries directly to avoid triggering a load
-        entries = getattr(self, "_data", dict()).get("entries", dict())
-
-        # Retrieve the paths of entries and convert them to absolute paths
-        paths = []
-        for entry in entries.values():
-
-            if entry.path is None:
-                # If the entry does not have a path, there's nothing that can be done
-                paths.append(None)
-
-            # Only convert paths that aren't already absolute
-            elif not entry.path.is_absolute():
-                # Convert paths to absolute paths by pre-pending the project's parent
-                path = project_parent / entry.path
-                paths.append(path)
-
-            else:
-                # Add the path unmodified
-                paths.append(entry.path)
-
-            # See if the entry has a 'to_absolute_paths'--i.e. it's a Project
-            if hasattr(entry, "to_absolute_paths"):
-                entry.to_absolute_paths()
-
-        # Atomically replace the paths
-        for entry, path in zip(entries.values(), paths):
-            if path is None:
-                continue
-            entry.path = path
-
-    def to_relative_paths(self, walk_up: bool = False):
-        """Set the paths of entries as relative paths to the project's path
-
-        (reverse of to_relative_paths)
-
-        Parameters
-        ----------
-        walk_up
-            When walk_up is False (the default), the path must start with other.
-            When the argument is True, .. entries may be added to form the relative
-            path (see: https://docs.python.org/3/library/pathlib.html)
-
-        Raises
-        ------
-        ValueError
-            Raised if a relative path cannot be determined
-        """
-        # Retrieve the project parent directory. A project path is needed to calculate
-        # relative paths.
-        if self.path is None:
-            return
-        project_parent = self.path.parent
-
-        # Get entries directly to avoid triggering a load
-        entries = getattr(self, "_data", dict()).get("entries", dict())
-
-        # Retrieve the paths of entries and convert them to relative paths
-        paths = []
-        for entry in entries.values():
-
-            if entry.path is None:
-                # If the entry does not have a path, there's nothing that can be done
-                paths.append(None)
-
-            # Only convert paths that are absolute paths
-            elif entry.path.is_absolute():
-                # Convert paths to absolute paths by pre-pending the project's parent
-                path = entry.path.relative_to(project_parent, walk_up=walk_up)
-                paths.append(path)
-
-            else:
-                # Add the path unmodified
-                paths.append(entry.path)
-
-            # See if the entry has a 'to_relative_paths'--i.e. it's a Project
-            if hasattr(entry, "to_relative_paths"):
-                entry.to_relative_paths(walk_up=walk_up)
-
-        # Atomically replace the paths
-        for entry, path in zip(entries.values(), paths):
-            if path is None:
-                continue
-            entry.path = path
 
     def add_entries(self, *entries: EntryAddedType):
         """Add entries to a project"""
@@ -394,13 +351,16 @@ class Project(YamlEntry):
         self.add_entries(*entries)
 
 
+## Utility functions
+
+
 ## YAML constructors and representers for YAML loaders and dumpers
 
 
 def path_representer(dumper: yaml.BaseDumper, path: Path):
     """Serializer (dumper) from yaml to a pathlib Path"""
     return (
-        dumper.represent_sequence(f"!path", list(path.parts))
+        dumper.represent_sequence(f"!Path", list(path.parts))
         if path is not None
         else None
     )
@@ -412,12 +372,19 @@ def path_constructor(loader: yaml.BaseLoader, node):
     return Path(*sequence) if sequence is not None else None
 
 
+def odict_representer(dumper: yaml.BaseDumper, odict: OrderedDict):
+    """Serializer (dumper) from yaml to an OrderedDict"""
+    return dumper.represent_sequence(f"!OrderedDict", odict.items())
+
+
+def odict_constructor(loader: yaml.BaseLoader, node):
+    """Deserializer (loader) for a pathlib Path from yaml"""
+    sequence = loader.construct_sequence(node, deep=True)
+    return OrderedDict(sequence) if sequence is not None else None
+
+
 def project_representer(dumper: yaml.BaseDumper, project: Project):
     """Deserializer (loader) for a Project from yaml
-
-    Note: Access project._data instead of project.data/project.meta/project.entries
-    to avoid triggering a load. The file that is being save to is touched by the
-    parent's save method.
 
     Parameters
     ----------
@@ -426,45 +393,7 @@ def project_representer(dumper: yaml.BaseDumper, project: Project):
     project
         The project entry instance to represent in YAML
     """
-
-    def project_mapping(project: Project) -> t.Tuple:
-        """Convert a project and its entries into and python mapping that can be
-        converted to a YAML mapping"""
-        # Get the project data directly rather than from the data/meta/entries methods
-        # This avoids a check to see if the data is stale and a possible re-load of
-        # the data on save
-        project_data = getattr(project, "_data", OrderedDict())
-        project_meta = project_data.get("meta", OrderedDict())
-        project_entries = project_data.get("entries", OrderedDict())
-
-        # Prepare a list of tuples for the entries
-        entries = []
-
-        for name, entry in project_entries.items():
-            # Get the state dict and other useful info
-            state = entry.__getstate__()
-            cls_name = entry.__class__.__name__
-
-            # Create a mapping of the state
-            if isinstance(entry, Project):
-                r = (name, (f"!{cls_name}", project_mapping(entry)))
-            else:
-                r = (name, (f"!{cls_name}", tuple(state.items())))
-
-            entries.append(r)
-
-        # Prepare the mapping as a list of (key, value) 2-ples
-        return (
-            f"!{project.__class__.__name__}",
-            (
-                ("meta", tuple((k, v) for k, v in project_meta.items())),
-                ("path", project.path),
-                ("entries", tuple(entries)),
-            ),
-        )
-
-    # Create a function that pull out python types and can be used recursively
-    return dumper.represent_mapping(*project_mapping(project))
+    return dumper.represent_mapping(f"!Project", project.__getstate__())
 
 
 def project_constructor(loader: yaml.BaseLoader, node):
@@ -477,61 +406,10 @@ def project_constructor(loader: yaml.BaseLoader, node):
     node
         The YAML node to convert to a project
     """
+    # Retrieve the state from the node
+    state = loader.construct_mapping(node, deep=True)
 
-    # Get all the entry subclasses
-    sub_classes = {("!" + cls.__name__): cls for _, cls in Entry.subclasses()}
-
-    def construct_project(mapping: t.OrderedDict):
-        """Takes a project mapping and populates all the fields"""
-        entries_list = mapping.pop("entries", dict())
-
-        entries = OrderedDict()
-        for name, value in entries_list.items():
-            # The 'value' created by project_representer should create an ordered
-            # dict with the entry's class name as the key and the entry's data as the
-            # value.
-            if not isinstance(value, t.Mapping) or len(value) != 1:
-                logger.error(f"Could not parse the entry value: {value}")
-                continue
-
-            cls_name, data = value.popitem()
-
-            if cls_name == "!Project":
-                # Use this function recursively
-                entry = construct_project(value)
-
-            elif cls_name in sub_classes:
-                # Re-create the entry class
-                cls = sub_classes[cls_name]
-                path = data.pop("path", None)
-
-                entry = cls(path=path)
-                entry.__dict__.update(data)
-
-            else:
-                logger.error(
-                    f"Could not find entry class '{cls_name}' with value '{data}'"
-                )
-                continue
-
-            entries[name] = entry
-
-        # Retrieve the remaining project data
-        meta = mapping.pop("meta", dict())
-        path = mapping.pop("path", None)
-
-        # Reconstruct the project
-        project = Project(path=None)
-
-        project.meta.update(meta)
-        project.entries.update(entries)
-
-        # Set path after creating the project so that accessing project.data (through
-        # project.meta and project.entries) does not trigger a recursive reload of
-        # the project
-        project.path = path
-        return project
-
-    mapping = loader.construct_mapping(node, deep=True)
-    mapping = tuple_to_dict(mapping)  # Convert tree of tuples to tree of OrderedDict
-    return construct_project(mapping)
+    # Construct project
+    project = Project()
+    project.__setstate__(state)
+    return project
