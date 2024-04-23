@@ -1,7 +1,5 @@
 """
 A project containing data entries
-
-TODO: Move absolute/relative path business path to yaml constructor/representer
 """
 
 import typing as t
