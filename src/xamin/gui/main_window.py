@@ -6,7 +6,7 @@ import typing as t
 from pathlib import Path
 from platform import system
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QDir
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -19,12 +19,11 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QTabWidget,
     QApplication,
+    QTreeView,
 )
-from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap, QKeySequence
+from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap, QFileSystemModel
 from loguru import logger
 from thatway import Setting
-
-from .projects import ProjectsModel, ProjectsView
 
 __all__ = (
     "MainApplication",
@@ -85,7 +84,7 @@ class MainWindow(QMainWindow):
     toolbar_visible = Setting(True, desc="Display toolbar")
 
     #: Default project list options
-    projects_view_width = Setting(10, desc="Default width (chars) for project listing")
+    panels_width = Setting(10, desc="Default width (chars) for panels")
 
     #: Central widget of the main window
     central_widget: QWidget
@@ -99,6 +98,12 @@ class MainWindow(QMainWindow):
     #: Icons
     icons: t.Dict[str, QIcon]
 
+    #: Models for data
+    # models
+
+    #: Views for data
+    # views
+
     #: Menu bar widget for the main window
     menubar: QMenuBar
 
@@ -108,9 +113,8 @@ class MainWindow(QMainWindow):
     #: Status bar widget for the main window
     statusbar: QStatusBar
 
-    #: Project listing widget for the main window
-    projects_model: ProjectsModel
-    projects_view: ProjectsView
+    #: Panels listing widget for the main window
+    panels: t.Dict
 
     #: Tab workspace view widget
     tabs: QTabWidget
@@ -211,35 +215,39 @@ class MainWindow(QMainWindow):
     def _create_central_widget(self, *args):
         """Create the workspace central widget with project files list and work views"""
         # Create sub-widgets
-        self._create_projects(*args)
         self._create_tabs()
+        self._create_panels()
 
         # Format the widgets in the workspace
         splitter = QSplitter()
         splitter.addWidget(self.tabs)
-        splitter.addWidget(self.projects_view)
+        splitter.addWidget(self.panels["file"])
 
         # Configure the splitter
         font = self.get_font()
-        width = font.pointSize() * self.projects_view_width
+        width = font.pointSize() * self.panels_width
         current_size = self.size()
         flex_width = current_size.width() - width
         splitter.setSizes((flex_width, width))
 
         self.central_widget = splitter
 
-    def _create_projects(self, *args):
-        """Create the project listing widget"""
-        self.projects_model = ProjectsModel()
-        self.projects_view = ProjectsView()
+    def _create_panels(self, *args):
+        """Create the panels widgets"""
+        self.panels = dict()
 
-        # Configure model and view
-        self.projects_model.append_files(*args)
-        self.projects_view.setModel(self.projects_model)
+        # Configure the File Panel
+        model = QFileSystemModel()
+        model.setRootPath(QDir.rootPath())
+
+        view = QTreeView()
+        view.setModel(model)
+        view.setRootIndex(model.index(QDir.homePath()))
 
         # Configure project list settings
-        font = self.get_font("projects")
-        self.projects_view.setFont(font)
+        # font = self.get_font("projects")
+        # self.projects_view.setFont(font)
+        self.panels["file"] = view
 
     def _create_tabs(self):
         """Create the tabs widget"""
