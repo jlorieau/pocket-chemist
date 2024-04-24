@@ -3,6 +3,7 @@ The main (root) window
 """
 
 import typing as t
+from types import SimpleNamespace
 from pathlib import Path
 from platform import system
 
@@ -86,11 +87,8 @@ class MainWindow(QMainWindow):
     #: Default project list options
     panels_width = Setting(10, desc="Default width (chars) for panels")
 
-    #: Central widget of the main window
-    central_widget: QWidget
-
     #: Actions for menu and tool bars
-    actions: t.Dict[str, QAction]
+    actions: SimpleNamespace
 
     #: Fonts
     fonts: t.Dict[str, QFont]
@@ -104,25 +102,14 @@ class MainWindow(QMainWindow):
     #: Views for data
     # views
 
-    #: Menu bar widget for the main window
-    menubar: QMenuBar
-
-    #: Tool bar widget for the main window
-    toolbar: QToolBar
-
-    #: Status bar widget for the main window
-    statusbar: QStatusBar
-
-    #: Panels listing widget for the main window
-    panels: t.Dict
-
-    #: Tab workspace view widget
-    tabs: QTabWidget
+    #: Listing of widgets
+    widgets: SimpleNamespace
 
     def __init__(self, *args):
         super().__init__()
 
         # Configure assets
+        self.widgets = SimpleNamespace()
         self.fonts = {"default": QFont(self.font_family, self.font_size)}
         self.create_icons()
 
@@ -138,7 +125,7 @@ class MainWindow(QMainWindow):
             self.create_toolbar()
 
         # Configure the central widget
-        self.setCentralWidget(self.central_widget)
+        self.setCentralWidget(self.widgets.central)
 
         # Configure the window
         screen_size = self.get_screen_size()
@@ -148,27 +135,25 @@ class MainWindow(QMainWindow):
         self.show()
 
         # Add tab
-        self.tabs.addTab(QTextEdit(), "Text edit")
+        self.widgets.tabs.addTab(QTextEdit(), "Text edit")
 
     def create_actions(self):
         """Create actions for menubar and toolbars"""
-        self.actions = dict()
+        # Create the actions name space
+        self.actions = SimpleNamespace()
+        actions = self.actions
 
         # Exit application action
-        exit = self.actions.setdefault(
-            "exit", QAction(self.icons["exit"], "Exit", self)
-        )
-        exit.setShortcut(Shortcuts.quit)
-        exit.setStatusTip("Exit")
-        exit.triggered.connect(self.close)
+        actions.exit = QAction(self.icons["exit"], "Exit", self)
+        actions.exit.setShortcut(Shortcuts.quit)
+        actions.exit.setStatusTip("Exit")
+        actions.exit.triggered.connect(self.close)
 
         # Open application action
-        open = self.actions.setdefault(
-            "open", QAction(self.icons["open"], "Open", self)
-        )
-        open.setShortcut(Shortcuts.open)
-        open.setStatusTip("Open")
-        open.triggered.connect(self.add_project_files)
+        actions.open = QAction(self.icons["open"], "Open", self)
+        actions.open.setShortcut(Shortcuts.open)
+        actions.open.setStatusTip("Open")
+        actions.open.triggered.connect(self.add_project_files)
 
     def create_icons(self):
         icons = dict()
@@ -186,78 +171,84 @@ class MainWindow(QMainWindow):
     def create_menubar(self):
         """Create menubar for the main window"""
         # Create the menubar
-        self.menubar = self.menuBar()
+        self.widgets.menubar = self.menuBar()
+        menubar = self.widgets.menubar
 
         # Configure the menubar
-        self.menubar.setFont(self.get_font("menubar"))
-        self.menubar.setNativeMenuBar(self.menubar_native)  # macOS
+        menubar.setFont(self.get_font("menubar"))
+        menubar.setNativeMenuBar(self.menubar_native)  # macOS
 
         # Populate menubar
-        fileMenu = self.menubar.addMenu("&File")
-        fileMenu.addAction(self.actions["open"])
-        fileMenu.addAction(self.actions["exit"])
+        fileMenu = menubar.addMenu("&File")
+        fileMenu.addAction(self.actions.open)
+        fileMenu.addAction(self.actions.exit)
 
     def create_toolbar(self):
         """Create toolbar for the main window"""
         # Create the toolbar
-        self.toolbar = QToolBar("toobar")
-        self.toolbar.setOrientation(Qt.Orientation.Vertical)
-        self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, self.toolbar)
+        self.widgets.toolbar = QToolBar("toobar")
+        toolbar = self.widgets.toolbar
+
+        # Configure the toolbar
+        toolbar.setOrientation(Qt.Orientation.Vertical)
+        self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, toolbar)
 
         # Add toolbar actions
-        self.toolbar.addAction(self.actions["open"])
-        self.toolbar.addAction(self.actions["exit"])
+        toolbar.addAction(self.actions.open)
+        toolbar.addAction(self.actions.exit)
 
         # Configure toolbar
         font = self.get_font("toolbar")
-        self.toolbar.setFont(font)
+        toolbar.setFont(font)
 
     def create_panels(self, *args):
         """Create the panels widgets"""
-        self.panels = dict()
+        # Create the panels namespace
+        self.widgets.panels = SimpleNamespace()
 
-        # Configure the File Panel
+        # Create the File explorer panel
         model = QFileSystemModel()
         model.setRootPath(QDir.rootPath())
 
-        view = QTreeView()
+        self.widgets.panels.file = QTreeView()
+        view = self.widgets.panels.file
+
+        # Configure the file explorer panel
         view.setModel(model)
         view.setRootIndex(model.index(QDir.homePath()))
 
-        # Configure project list settings
-        # font = self.get_font("projects")
-        # self.projects_view.setFont(font)
-        self.panels["file"] = view
-
     def create_tabs(self):
         """Create the tabs widget"""
-        self.tabs = QTabWidget()
+        # Create the widget
+        self.widgets.tabs = QTabWidget()
+        tabs = self.widgets.tabs
 
         # Configure the tabs
-        self.tabs.setFont(self.get_font("tabs"))
-        self.tabs.setTabsClosable(True)  # Allow tabs to close
-        self.tabs.setTabBarAutoHide(True)  # Only show tabs when more than 1 present
-        self.tabs.setMovable(True)  # Users can move tabs
+        tabs.setFont(self.get_font("tabs"))
+        tabs.setTabsClosable(True)  # Allow tabs to close
+        tabs.setTabBarAutoHide(True)  # Only show tabs when more than 1 present
+        tabs.setMovable(True)  # Users can move tabs
 
     def create_central_widget(self, *args):
         """Create the workspace central widget with project files list and work views"""
+        # Create central widget
+        self.widgets.central = QSplitter()
+        splitter = self.widgets.central
+
         # Create sub-widgets
         self.create_tabs()
         self.create_panels()
 
         # Format the widgets in the workspace
-        splitter = QSplitter()
-        splitter.addWidget(self.tabs)
-        splitter.addWidget(self.panels["file"])
+        splitter.addWidget(self.widgets.panels.file)
+        splitter.addWidget(self.widgets.tabs)
 
         # Configure the splitter
         font = self.get_font()
         width = font.pointSize() * self.panels_width
         current_size = self.size()
         flex_width = current_size.width() - width
-        splitter.setSizes((flex_width, width))
-
-        self.central_widget = splitter
+        splitter.setSizes((width, flex_width))
 
     @staticmethod
     def get_screen_size() -> t.Tuple[int, int]:
