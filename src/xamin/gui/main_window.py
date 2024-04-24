@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
     toolbar_visible = Setting(True, desc="Display toolbar")
 
     #: Default project list options
-    panels_width = Setting(8, desc="Default width (chars) for panels")
+    panels_width = Setting(10, desc="Default width (chars) for panels")
 
     #: Actions for menu and tool bars
     actions: SimpleNamespace
@@ -191,6 +191,7 @@ class MainWindow(QMainWindow):
 
         # Configure the toolbar
         toolbar.setOrientation(Qt.Orientation.Vertical)
+        toolbar.setMovable(False)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, toolbar)
 
         # Add toolbar actions
