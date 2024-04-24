@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
     toolbar_visible = Setting(True, desc="Display toolbar")
 
     #: Default project list options
-    panels_width = Setting(10, desc="Default width (chars) for panels")
+    panels_width = Setting(8, desc="Default width (chars) for panels")
 
     #: Actions for menu and tool bars
     actions: SimpleNamespace
@@ -216,6 +216,11 @@ class MainWindow(QMainWindow):
         # Configure the file explorer panel
         view.setModel(model)
         view.setRootIndex(model.index(QDir.homePath()))
+
+        # Show only the filename column
+        for i in range(1, 4):
+            view.hideColumn(i)
+        view.setHeaderHidden(True)  # don't show header
 
     def create_tabs(self):
         """Create the tabs widget"""
