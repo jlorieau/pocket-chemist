@@ -124,18 +124,18 @@ class MainWindow(QMainWindow):
 
         # Configure assets
         self.fonts = {"default": QFont(self.font_family, self.font_size)}
-        self._create_icons()
+        self.create_icons()
 
         # Configure the main window
         self.setWindowTitle("xamin")
         self.resize(self.window_width, self.window_height)
 
         # Create core widgets
-        self._create_central_widget(*args)
-        self._create_actions()
-        self._create_menubar()
+        self.create_central_widget(*args)
+        self.create_actions()
+        self.create_menubar()
         if self.toolbar_visible:
-            self._create_toolbar()
+            self.create_toolbar()
 
         # Configure the central widget
         self.setCentralWidget(self.central_widget)
@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
         # Add tab
         self.tabs.addTab(QTextEdit(), "Text edit")
 
-    def _create_actions(self):
+    def create_actions(self):
         """Create actions for menubar and toolbars"""
         self.actions = dict()
 
@@ -170,7 +170,7 @@ class MainWindow(QMainWindow):
         open.setStatusTip("Open")
         open.triggered.connect(self.add_project_files)
 
-    def _create_icons(self):
+    def create_icons(self):
         icons = dict()
         self.icons = icons
 
@@ -183,7 +183,7 @@ class MainWindow(QMainWindow):
         for name, item in paths.items():
             icons[name] = QIcon(QPixmap(str(item))) if isinstance(item, Path) else item
 
-    def _create_menubar(self):
+    def create_menubar(self):
         """Create menubar for the main window"""
         # Create the menubar
         self.menubar = self.menuBar()
@@ -197,7 +197,7 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(self.actions["open"])
         fileMenu.addAction(self.actions["exit"])
 
-    def _create_toolbar(self):
+    def create_toolbar(self):
         """Create toolbar for the main window"""
         # Create the toolbar
         self.toolbar = QToolBar("toobar")
@@ -212,27 +212,7 @@ class MainWindow(QMainWindow):
         font = self.get_font("toolbar")
         self.toolbar.setFont(font)
 
-    def _create_central_widget(self, *args):
-        """Create the workspace central widget with project files list and work views"""
-        # Create sub-widgets
-        self._create_tabs()
-        self._create_panels()
-
-        # Format the widgets in the workspace
-        splitter = QSplitter()
-        splitter.addWidget(self.tabs)
-        splitter.addWidget(self.panels["file"])
-
-        # Configure the splitter
-        font = self.get_font()
-        width = font.pointSize() * self.panels_width
-        current_size = self.size()
-        flex_width = current_size.width() - width
-        splitter.setSizes((flex_width, width))
-
-        self.central_widget = splitter
-
-    def _create_panels(self, *args):
+    def create_panels(self, *args):
         """Create the panels widgets"""
         self.panels = dict()
 
@@ -249,7 +229,7 @@ class MainWindow(QMainWindow):
         # self.projects_view.setFont(font)
         self.panels["file"] = view
 
-    def _create_tabs(self):
+    def create_tabs(self):
         """Create the tabs widget"""
         self.tabs = QTabWidget()
 
@@ -258,6 +238,26 @@ class MainWindow(QMainWindow):
         self.tabs.setTabsClosable(True)  # Allow tabs to close
         self.tabs.setTabBarAutoHide(True)  # Only show tabs when more than 1 present
         self.tabs.setMovable(True)  # Users can move tabs
+
+    def create_central_widget(self, *args):
+        """Create the workspace central widget with project files list and work views"""
+        # Create sub-widgets
+        self.create_tabs()
+        self.create_panels()
+
+        # Format the widgets in the workspace
+        splitter = QSplitter()
+        splitter.addWidget(self.tabs)
+        splitter.addWidget(self.panels["file"])
+
+        # Configure the splitter
+        font = self.get_font()
+        width = font.pointSize() * self.panels_width
+        current_size = self.size()
+        flex_width = current_size.width() - width
+        splitter.setSizes((flex_width, width))
+
+        self.central_widget = splitter
 
     @staticmethod
     def get_screen_size() -> t.Tuple[int, int]:
