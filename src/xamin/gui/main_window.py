@@ -26,6 +26,8 @@ from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap, QFileSystemModel
 from loguru import logger
 from thatway import Setting
 
+from .plugins import get_plugin_manager, EntryViewsType
+
 __all__ = (
     "MainApplication",
     "MainWindow",
@@ -96,17 +98,17 @@ class MainWindow(QMainWindow):
     #: Icons
     icons: t.Dict[str, QIcon]
 
-    #: Models for data
-    # models
-
-    #: Views for data
-    # views
+    #: Entry views
+    entry_views: EntryViewsType
 
     #: Listing of widgets
     widgets: SimpleNamespace
 
     def __init__(self, *args):
         super().__init__()
+
+        # Load hooks
+        self.load_hooks()
 
         # Configure assets
         self.widgets = SimpleNamespace()
@@ -134,7 +136,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("xamin")
         self.show()
 
-        # Add tab
+        # Add tab widget
         self.widgets.tabs.addTab(QTextEdit(), "Text edit")
 
     def create_actions(self):
@@ -255,6 +257,16 @@ class MainWindow(QMainWindow):
         current_size = self.size()
         flex_width = current_size.width() - width
         splitter.setSizes((width, flex_width))
+
+    def load_hooks(self):
+        """Load plugin hooks"""
+        # Get the plugin manager
+        pm = get_plugin_manager()
+
+        # Load entry views
+        self.entry_views = dict()
+        pm.hook.add_entry_views(entry_views=self.entry_views)
+        logger.debug(f"{self.__class__.__name__}.entry_views: {self.entry_views}")
 
     @staticmethod
     def get_screen_size() -> t.Tuple[int, int]:
