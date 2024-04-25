@@ -1,3 +1,7 @@
+"""
+TODO: Rename submodule from project to entry
+"""
+
 from .entry import *
 from .text_entry import *
 from .binary_entry import *
