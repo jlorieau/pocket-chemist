@@ -6,7 +6,7 @@ import yaml
 
 import pytest
 
-from xamin.project import Entry, TextEntry, BinaryEntry, CsvEntry, YamlEntry, Project
+from xamin.entry import Entry, TextEntry, BinaryEntry, CsvEntry, YamlEntry, Project
 from xamin.utils.dict import recursive_update
 
 

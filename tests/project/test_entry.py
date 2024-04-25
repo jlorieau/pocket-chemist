@@ -4,7 +4,7 @@ import inspect
 from copy import deepcopy
 
 import pytest
-from xamin.project import (
+from xamin.entry import (
     Entry,
     TextEntry,
     BinaryEntry,

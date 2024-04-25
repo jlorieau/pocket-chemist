@@ -5,8 +5,8 @@ import pathlib
 from pathlib import Path
 from collections import OrderedDict
 
-from xamin.project import Project, TextEntry
-from xamin.project.project import (
+from xamin.entry import Project, TextEntry
+from xamin.entry.project import (
     path_constructor,
     path_representer,
     odict_representer,

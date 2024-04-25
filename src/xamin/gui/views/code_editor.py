@@ -6,7 +6,7 @@ from PyQt6.QtGui import QTextDocument
 from PyQt6.QtWidgets import QPlainTextEdit
 from pluggy import HookimplMarker
 
-from ...project import TextEntry
+from ...entry import TextEntry
 
 
 __all__ = ("QCodeEdit",)

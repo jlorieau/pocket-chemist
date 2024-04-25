@@ -6,7 +6,7 @@ import pluggy
 from PyQt6.QtWidgets import QWidget
 
 from .views import code_editor
-from ..project import Entry
+from ..entry import Entry
 
 hookspec = pluggy.HookspecMarker("xamin")
 
