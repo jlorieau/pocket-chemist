@@ -26,6 +26,7 @@ from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap, QFileSystemModel
 from loguru import logger
 from thatway import Setting
 
+from .icons import get_icons
 from .plugins import get_plugin_manager, EntryViewsType
 
 __all__ = (
@@ -96,7 +97,7 @@ class MainWindow(QMainWindow):
     fonts: t.Dict[str, QFont]
 
     #: Icons
-    icons: t.Dict[str, QIcon]
+    icons: SimpleNamespace
 
     #: Entry views
     entry_views: EntryViewsType
@@ -113,7 +114,7 @@ class MainWindow(QMainWindow):
         # Configure assets
         self.widgets = SimpleNamespace()
         self.fonts = {"default": QFont(self.font_family, self.font_size)}
-        self.create_icons()
+        self.icons = get_icons()
 
         # Configure the main window
         self.setWindowTitle("xamin")
@@ -145,30 +146,20 @@ class MainWindow(QMainWindow):
         self.actions = SimpleNamespace()
         actions = self.actions
 
+        # Get the icon namespace to use
+        icons = self.icons.current
+
         # Exit application action
-        actions.exit = QAction(self.icons["exit"], "Exit", self)
+        actions.exit = QAction(icons.actions.application_exit, "Exit", self)
         actions.exit.setShortcut(Shortcuts.quit)
         actions.exit.setStatusTip("Exit")
         actions.exit.triggered.connect(self.close)
 
         # Open application action
-        actions.open = QAction(self.icons["open"], "Open", self)
+        actions.open = QAction(icons.actions.document_open, "Open", self)
         actions.open.setShortcut(Shortcuts.open)
         actions.open.setStatusTip("Open")
         actions.open.triggered.connect(self.add_project_files)
-
-    def create_icons(self):
-        icons = dict()
-        self.icons = icons
-
-        # Populate icons
-        base_dir = Path(__file__).parent / "icons" / "dark"
-        paths = {
-            "exit": base_dir / "actions" / "application-exit.svg",
-            "open": base_dir / "actions" / "document-open.svg",
-        }
-        for name, item in paths.items():
-            icons[name] = QIcon(QPixmap(str(item))) if isinstance(item, Path) else item
 
     def create_menubar(self):
         """Create menubar for the main window"""
