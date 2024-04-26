@@ -29,6 +29,7 @@ from thatway import Setting
 from .icons import get_icons
 from .actions import get_actions
 from .menubar import get_menubar
+from .toolbar import get_toolbar
 from .plugins import get_plugin_manager, EntryViewsType
 
 __all__ = (
@@ -122,11 +123,13 @@ class MainWindow(QMainWindow):
         # Create core widgets
         self.create_central_widget(*args)
         self.actions = get_actions(parent=self, icons=self.icons)
-        self.menubar = get_menubar(
+        self.widgets.menubar = get_menubar(
             parent=self, actions=self.actions, font=self.get_font("menubar")
         )
         if self.toolbar_visible:
-            self.create_toolbar()
+            self.widgets.toolbar = get_toolbar(
+                parent=self, actions=self.actions, font=self.get_font("toolbar")
+            )
 
         # Configure the central widget
         self.setCentralWidget(self.widgets.central)
@@ -140,25 +143,6 @@ class MainWindow(QMainWindow):
 
         # Add tab widget
         self.widgets.tabs.addTab(QTextEdit(), "Text edit")
-
-    def create_toolbar(self):
-        """Create toolbar for the main window"""
-        # Create the toolbar
-        self.widgets.toolbar = QToolBar("toobar")
-        toolbar = self.widgets.toolbar
-
-        # Configure the toolbar
-        toolbar.setOrientation(Qt.Orientation.Vertical)
-        toolbar.setMovable(False)
-        self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, toolbar)
-
-        # Add toolbar actions
-        toolbar.addAction(self.actions.open)
-        toolbar.addAction(self.actions.exit)
-
-        # Configure toolbar
-        font = self.get_font("toolbar")
-        toolbar.setFont(font)
 
     def create_panels(self, *args):
         """Create the panels widgets"""
