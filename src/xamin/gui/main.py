@@ -84,9 +84,6 @@ class MainWindow(QMainWindow):
     font_family = Setting("Helvetica", desc="Default font")
     font_size = Setting(15, desc="Default font size")
 
-    # Toolbar options
-    toolbar_visible = Setting(True, desc="Display toolbar")
-
     #: Default project list options
     panels_width = Setting(10, desc="Default width (chars) for panels")
 
@@ -106,7 +103,7 @@ class MainWindow(QMainWindow):
     widgets: SimpleNamespace
 
     def __init__(self, *args):
-        super().__init__()
+        super().__init__(*args)
 
         # Load hooks
         self.load_hooks()
@@ -126,10 +123,9 @@ class MainWindow(QMainWindow):
         self.widgets.menubar = get_menubar(
             parent=self, actions=self.actions, font=self.get_font("menubar")
         )
-        if self.toolbar_visible:
-            self.widgets.toolbar = get_toolbar(
-                parent=self, actions=self.actions, font=self.get_font("toolbar")
-            )
+        self.widgets.toolbar = get_toolbar(
+            parent=self, actions=self.actions, font=self.get_font("toolbar")
+        )
 
         # Configure the central widget
         self.setCentralWidget(self.widgets.central)
