@@ -20,7 +20,7 @@ def get_actions(
     shortcuts: Config = shortcuts,
     icons: SimpleNamespace | None = None,
     scheme: str = "dark",
-):
+) -> SimpleNamespace:
     """Retrieve GUI actions
 
     Parameters
