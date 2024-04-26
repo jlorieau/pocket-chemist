@@ -7,22 +7,18 @@ from types import SimpleNamespace
 from pathlib import Path
 from platform import system
 
-from PyQt6.QtCore import Qt, QDir
+from PyQt6.QtCore import QDir
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
-    QStatusBar,
-    QWidget,
-    QMenuBar,
     QTextEdit,
-    QToolBar,
     QFileDialog,
     QSplitter,
     QTabWidget,
     QApplication,
     QTreeView,
 )
-from PyQt6.QtGui import QIcon, QAction, QFont, QPixmap, QFileSystemModel
+from PyQt6.QtGui import QFont, QFileSystemModel
 from loguru import logger
 from thatway import Setting
 
