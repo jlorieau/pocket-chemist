@@ -34,6 +34,10 @@ def get_actions(
     scheme
         The color scheme of the icons to use
 
+    Returns
+    -------
+    actions
+        The namespace containing actions
     """
     # Use the cached copy, if available
     global actions
