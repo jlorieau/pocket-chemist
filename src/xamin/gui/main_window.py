@@ -27,6 +27,7 @@ from loguru import logger
 from thatway import Setting
 
 from .icons import get_icons
+from .actions import get_actions
 from .plugins import get_plugin_manager, EntryViewsType
 
 __all__ = (
@@ -122,7 +123,7 @@ class MainWindow(QMainWindow):
 
         # Create core widgets
         self.create_central_widget(*args)
-        self.create_actions()
+        self.actions = get_actions(parent=self, icons=self.icons)
         self.create_menubar()
         if self.toolbar_visible:
             self.create_toolbar()
@@ -139,27 +140,6 @@ class MainWindow(QMainWindow):
 
         # Add tab widget
         self.widgets.tabs.addTab(QTextEdit(), "Text edit")
-
-    def create_actions(self):
-        """Create actions for menubar and toolbars"""
-        # Create the actions name space
-        self.actions = SimpleNamespace()
-        actions = self.actions
-
-        # Get the icon namespace to use
-        icons = self.icons.current
-
-        # Exit application action
-        actions.exit = QAction(icons.actions.application_exit, "Exit", self)
-        actions.exit.setShortcut(Shortcuts.quit)
-        actions.exit.setStatusTip("Exit")
-        actions.exit.triggered.connect(self.close)
-
-        # Open application action
-        actions.open = QAction(icons.actions.document_open, "Open", self)
-        actions.open.setShortcut(Shortcuts.open)
-        actions.open.setStatusTip("Open")
-        actions.open.triggered.connect(self.add_project_files)
 
     def create_menubar(self):
         """Create menubar for the main window"""
