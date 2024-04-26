@@ -28,6 +28,7 @@ from thatway import Setting
 
 from .icons import get_icons
 from .actions import get_actions
+from .menubar import get_menubar
 from .plugins import get_plugin_manager, EntryViewsType
 
 __all__ = (
@@ -82,9 +83,6 @@ class MainWindow(QMainWindow):
     font_family = Setting("Helvetica", desc="Default font")
     font_size = Setting(15, desc="Default font size")
 
-    # Menubar options
-    menubar_native = Setting(True, desc="Use native OS for menubar display")
-
     # Toolbar options
     toolbar_visible = Setting(True, desc="Display toolbar")
 
@@ -124,7 +122,9 @@ class MainWindow(QMainWindow):
         # Create core widgets
         self.create_central_widget(*args)
         self.actions = get_actions(parent=self, icons=self.icons)
-        self.create_menubar()
+        self.menubar = get_menubar(
+            parent=self, actions=self.actions, font=self.get_font("menubar")
+        )
         if self.toolbar_visible:
             self.create_toolbar()
 
@@ -140,21 +140,6 @@ class MainWindow(QMainWindow):
 
         # Add tab widget
         self.widgets.tabs.addTab(QTextEdit(), "Text edit")
-
-    def create_menubar(self):
-        """Create menubar for the main window"""
-        # Create the menubar
-        self.widgets.menubar = self.menuBar()
-        menubar = self.widgets.menubar
-
-        # Configure the menubar
-        menubar.setFont(self.get_font("menubar"))
-        menubar.setNativeMenuBar(self.menubar_native)  # macOS
-
-        # Populate menubar
-        fileMenu = menubar.addMenu("&File")
-        fileMenu.addAction(self.actions.open)
-        fileMenu.addAction(self.actions.exit)
 
     def create_toolbar(self):
         """Create toolbar for the main window"""
