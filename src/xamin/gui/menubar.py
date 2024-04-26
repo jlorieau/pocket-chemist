@@ -5,12 +5,14 @@ Menubar for the main window
 from types import SimpleNamespace
 
 from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget, QMenuBar
 
 menubar = None
 
 
-def get_menubar(parent: QWidget, actions: SimpleNamespace, font: QFont | None = None):
+def get_menubar(
+    parent: QWidget, actions: SimpleNamespace, font: QFont | None = None
+) -> QMenuBar:
     """Retrieve the menubar for the main window.
 
     Parameters
