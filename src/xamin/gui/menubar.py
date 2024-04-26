@@ -23,6 +23,11 @@ def get_menubar(
         The GUI actions associate with menubar entries
     font
         The font to use in rendering the menubar
+
+    Returns
+    -------
+    menubar
+        The menubar object for the main window
     """
     # Retrieve cached version, if available
     global menubar
