@@ -27,7 +27,7 @@ def get_menubar(
     Returns
     -------
     menubar
-        The menubar object for the main window
+        The menubar widget for the main window
     """
     # Retrieve cached version, if available
     global menubar
