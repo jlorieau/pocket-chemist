@@ -26,6 +26,7 @@ from .icons import get_icons
 from .actions import get_actions
 from .menubar import get_menubar
 from .toolbar import get_toolbar
+from .panels import get_panels
 from .plugins import get_plugin_manager, EntryViewsType
 
 __all__ = (
@@ -136,27 +137,6 @@ class MainWindow(QMainWindow):
         # Add tab widget
         self.widgets.tabs.addTab(QTextEdit(), "Text edit")
 
-    def create_panels(self, *args):
-        """Create the panels widgets"""
-        # Create the panels namespace
-        self.widgets.panels = SimpleNamespace()
-
-        # Create the File explorer panel
-        model = QFileSystemModel()
-        model.setRootPath(QDir.rootPath())
-
-        self.widgets.panels.file = QTreeView()
-        view = self.widgets.panels.file
-
-        # Configure the file explorer panel
-        view.setModel(model)
-        view.setRootIndex(model.index(QDir.homePath()))
-
-        # Show only the filename column
-        for i in range(1, 4):
-            view.hideColumn(i)
-        view.setHeaderHidden(True)  # don't show header
-
     def create_tabs(self):
         """Create the tabs widget"""
         # Create the widget
@@ -175,12 +155,15 @@ class MainWindow(QMainWindow):
         self.widgets.central = QSplitter()
         splitter = self.widgets.central
 
+        # Configure splitter
+        splitter.setHandleWidth(1)
+
         # Create sub-widgets
         self.create_tabs()
-        self.create_panels()
+        self.widgets.panels = get_panels()
 
         # Format the widgets in the workspace
-        splitter.addWidget(self.widgets.panels.file)
+        splitter.addWidget(self.widgets.panels)
         splitter.addWidget(self.widgets.tabs)
 
         # Configure the splitter
