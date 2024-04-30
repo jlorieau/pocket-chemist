@@ -4,6 +4,7 @@ An entry for YAML files
 
 import typing as t
 import yaml
+import yaml.scanner
 from pathlib import Path
 
 from .entry import Entry, Hint
@@ -55,7 +56,7 @@ class YamlEntry(Entry[YamlType]):
         # Try parsing this block into an OrderedDict
         try:
             data = yaml.load(block, Loader=loader)
-        except yaml.constructor.ConstructorError as e:
+        except (yaml.constructor.ConstructorError, yaml.scanner.ScannerError) as e:
             return False
 
         return (
