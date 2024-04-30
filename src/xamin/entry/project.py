@@ -141,7 +141,7 @@ class Project(YamlEntry):
         """Overrides YamlEntry parent class method to use a custom loader for project
         entries."""
         hint = hint if hint is not None else cls.get_hint(path)
-        text = hint.utf_8
+        text = hint.utf_8 if hint is not None else None
 
         # Project files start with a "!Project" tag followed by "meta" entry. e.g.
         # !Project

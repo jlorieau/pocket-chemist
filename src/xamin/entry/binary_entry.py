@@ -29,7 +29,7 @@ class BinaryEntry(Entry[bytes]):
         """
         hint = hint if hint is not None else cls.get_hint(path)
 
-        return False if hint.utf_8 else True
+        return False if hint and hint.utf_8 else True
 
     def default_data(self):
         return b""

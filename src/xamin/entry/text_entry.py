@@ -26,7 +26,7 @@ class TextEntry(Entry[str]):
         False
         """
         hint = hint if hint is not None else cls.get_hint(path)
-        return True if hint.utf_8 else False
+        return True if hint and hint.utf_8 else False
 
     def default_data(self):
         return ""

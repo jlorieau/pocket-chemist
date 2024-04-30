@@ -45,7 +45,7 @@ class YamlEntry(Entry[YamlType]):
         loader = loader if loader is not None else cls.get_loader()
 
         # Yaml has to be text strings--not binary
-        text = hint.utf_8
+        text = hint.utf_8 if hint is not None else None
         if text is None:
             return False
 
