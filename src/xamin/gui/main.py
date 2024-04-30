@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QApplication,
     QTreeView,
 )
-from PyQt6.QtGui import QFont, QFileSystemModel
+from PyQt6.QtGui import QFont
 from loguru import logger
 from thatway import Setting
 
@@ -27,7 +27,6 @@ from .actions import get_actions
 from .menubar import get_menubar
 from .toolbar import get_toolbar
 from .panels import get_panels
-from .plugins import get_plugin_manager, EntryViewsType
 
 __all__ = (
     "MainApplication",
@@ -93,17 +92,11 @@ class MainWindow(QMainWindow):
     #: Icons
     icons: SimpleNamespace
 
-    #: Entry views
-    entry_views: EntryViewsType
-
     #: Listing of widgets
     widgets: SimpleNamespace
 
     def __init__(self, *args):
         super().__init__(*args)
-
-        # Load hooks
-        self.load_hooks()
 
         # Configure assets
         self.widgets = SimpleNamespace()
@@ -172,16 +165,6 @@ class MainWindow(QMainWindow):
         current_size = self.size()
         flex_width = current_size.width() - width
         splitter.setSizes((width, flex_width))
-
-    def load_hooks(self):
-        """Load plugin hooks"""
-        # Get the plugin manager
-        pm = get_plugin_manager()
-
-        # Load entry views
-        self.entry_views = dict()
-        pm.hook.add_entry_views(entry_views=self.entry_views)
-        logger.debug(f"{self.__class__.__name__}.entry_views: {self.entry_views}")
 
     @staticmethod
     def get_screen_size() -> t.Tuple[int, int]:
