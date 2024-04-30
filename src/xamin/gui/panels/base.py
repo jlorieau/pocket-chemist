@@ -43,7 +43,6 @@ class BasePanel(QWidget):
         cls, name: str, toolbar_icon: QIcon | None = None, **kwargs
     ) -> None:
         """Initialize required class attributes for subclasses"""
-        # Customize creation of subclasses
         cls.name = name
         cls.toolbar_icon = toolbar_icon
         BasePanel._subclasses.append(cls)
