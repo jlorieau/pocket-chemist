@@ -56,7 +56,7 @@ class YamlEntry(Entry[YamlType]):
         # Try parsing this block into an OrderedDict
         try:
             data = yaml.load(block, Loader=loader)
-        except (yaml.constructor.ConstructorError, yaml.scanner.ScannerError) as e:
+        except Exception:
             return False
 
         return (
