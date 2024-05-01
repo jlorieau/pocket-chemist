@@ -7,7 +7,6 @@ from types import SimpleNamespace
 from pathlib import Path
 from platform import system
 
-from PyQt6.QtCore import QDir
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -16,7 +15,6 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QTabWidget,
     QApplication,
-    QTreeView,
 )
 from PyQt6.QtGui import QFont
 from loguru import logger
