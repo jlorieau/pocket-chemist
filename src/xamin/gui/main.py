@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
     QTextEdit,
-    QFileDialog,
     QSplitter,
     QTabWidget,
     QApplication,
@@ -20,11 +19,13 @@ from PyQt6.QtGui import QFont
 from loguru import logger
 from thatway import Setting
 
+from ..entry import Entry
 from .icons import get_icons
 from .actions import get_actions
 from .menubar import get_menubar
 from .toolbar import get_toolbar
-from .panels import get_panels
+from .panels import PanelStack
+from .view_models import BaseViewModel
 
 __all__ = (
     "MainApplication",
@@ -90,16 +91,30 @@ class MainWindow(QMainWindow):
     #: Icons
     icons: SimpleNamespace
 
-    #: Listing of widgets
+    #: Listing of the loaded data entries
+    entries: t.List[Entry]
+
+    #: Lising of the loaded ViewModels
+    views: t.List[BaseViewModel]
+
+    #: Child widgets
+    #:   widgets.root     (root window/widget)
+    #:   widgets.central  (central widget of the root window)
+    #:   widgets.menubar  (root menubar widget)
+    #:   widgets.toolbar  (root toolbar widget)
+    #:   widgets.tabs     (tabs bar widget)
     widgets: SimpleNamespace
 
     def __init__(self, *args):
         super().__init__(*args)
 
         # Configure assets
-        self.widgets = SimpleNamespace()
         self.fonts = {"default": QFont(self.font_family, self.font_size)}
         self.icons = get_icons()
+        self.entries = []
+        self.views = []
+        self.widgets = SimpleNamespace()
+        self.widgets.root = self
 
         # Configure the main window
         self.setWindowTitle("xamin")
@@ -151,7 +166,7 @@ class MainWindow(QMainWindow):
 
         # Create sub-widgets
         self.create_tabs()
-        self.widgets.panels = get_panels()
+        self.widgets.panels = PanelStack(parent=self)
 
         # Format the widgets in the workspace
         splitter.addWidget(self.widgets.panels)
@@ -176,8 +191,3 @@ class MainWindow(QMainWindow):
         earlier names."""
         match_names = [name for name in names if name in self.fonts]
         return self.fonts[match_names[0]] if match_names else self.fonts["default"]
-
-    def add_project_files(self) -> None:
-        """Add project files with the file dialog"""
-        dialog = QFileDialog()
-        files, filter = dialog.getOpenFileNames()

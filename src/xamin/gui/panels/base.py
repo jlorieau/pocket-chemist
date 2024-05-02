@@ -7,9 +7,9 @@ from types import SimpleNamespace
 
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QStackedWidget, QLabel, QVBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
 
-__all__ = ("BasePanel", "PanelStack")
+__all__ = ("BasePanel",)
 
 
 class BasePanel(QWidget):
@@ -60,9 +60,6 @@ class BasePanel(QWidget):
         self.widgets.heading.setAlignment(
             Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
         )
-        # self.widgets.heading.setSizePolicy(
-        #     QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
-        # )
 
         self.widgets.main = self.create_main_widget()
 
@@ -87,7 +84,3 @@ class BasePanel(QWidget):
     def create_main_widget(self):
         """Create the main widget of the panel"""
         return QWidget
-
-
-class PanelStack(QStackedWidget):
-    """A stacked widget for the different panels"""
