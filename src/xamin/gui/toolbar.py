@@ -21,10 +21,10 @@ class MainToolbar(QToolBar):
         The title for the toolbar
     parent
         The parent widget that owns this toolbar
-    font
-        The font to use is styling this toolbar
     actions
         The actions namespace for the main window
+    font
+        The font to use is styling this toolbar
     """
 
     # Settings
@@ -36,8 +36,8 @@ class MainToolbar(QToolBar):
         self,
         title: str | None = None,
         parent: QWidget | None = None,
-        font: QFont | None = None,
         actions: SimpleNamespace | None = None,
+        font: QFont | None = None,
     ):
         title = title or "toolbar"
         super().__init__(title, parent)
