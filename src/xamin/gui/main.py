@@ -22,7 +22,7 @@ from thatway import Setting
 from ..entry import Entry
 from .icons import get_icons
 from .actions import get_actions
-from .menubar import get_menubar
+from .menubar import MainMenuBar
 from .toolbar import MainToolbar
 from .panels import PanelStack
 from .view_models import BaseViewModel
@@ -123,9 +123,14 @@ class MainWindow(QMainWindow):
         # Create core widgets
         self.create_central_widget(*args)
         self.actions = get_actions(parent=self, icons=self.icons)
-        self.widgets.menubar = get_menubar(
+
+        # Core widget: Menubar
+        self.widgets.menubar = MainMenuBar(
             parent=self, actions=self.actions, font=self.get_font("menubar")
         )
+        self.setMenuBar(self.widgets.menubar)
+
+        #: Core widget: Toolbar
         self.widgets.toolbar = MainToolbar(
             parent=self, actions=self.actions, font=self.get_font("toolbar")
         )

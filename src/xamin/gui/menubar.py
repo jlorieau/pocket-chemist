@@ -7,13 +7,11 @@ from types import SimpleNamespace
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QWidget, QMenuBar
 
-menubar = None
+__all__ = ("MainMenuBar",)
 
 
-def get_menubar(
-    parent: QWidget, actions: SimpleNamespace, font: QFont | None = None
-) -> QMenuBar:
-    """Retrieve the menubar for the main window.
+class MainMenuBar(QMenuBar):
+    """The menubar for the main window
 
     Parameters
     ----------
@@ -23,29 +21,24 @@ def get_menubar(
         The GUI actions associate with menubar entries
     font
         The font to use in rendering the menubar
-
-    Returns
-    -------
-    menubar
-        The menubar widget for the main window
     """
-    # Retrieve cached version, if available
-    global menubar
-    if menubar is not None:
-        return menubar
 
-    # Create the menubar
-    menubar = parent.menuBar()
+    def __init__(
+        self,
+        parent: QWidget | None,
+        actions: SimpleNamespace | None = None,
+        font: QFont | None = None,
+    ) -> None:
+        super().__init__(parent)
 
-    # Configure the menubar
-    if font is not None:
-        menubar.setFont(font)
+        # Configure the menubar
+        if font is not None:
+            self.setFont(font)
 
-    menubar.setNativeMenuBar(True)  # use native macOS menubar
+        self.setNativeMenuBar(True)  # use native macOS menubar
 
-    # Populate menubar
-    fileMenu = menubar.addMenu("&File")  # File
-    fileMenu.addAction(actions.open)  # File->Open
-    fileMenu.addAction(actions.exit)  # File->Exit
-
-    return menubar
+        # Populate menubar
+        if actions is not None:
+            fileMenu = self.addMenu("&File")  # File
+            fileMenu.addAction(actions.open)  # File->Open
+            fileMenu.addAction(actions.exit)  # File->Exit
