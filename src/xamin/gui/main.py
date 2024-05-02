@@ -21,7 +21,8 @@ from thatway import Setting
 
 from ..entry import Entry
 from .icons import get_icons
-from .actions import get_actions
+from .shortcuts import shortcuts
+from .actions import MainActions
 from .menubar import MainMenuBar
 from .toolbar import MainToolbar
 from .panels import PanelStack
@@ -122,7 +123,9 @@ class MainWindow(QMainWindow):
 
         # Create core widgets
         self.create_central_widget(*args)
-        self.actions = get_actions(parent=self, icons=self.icons)
+        self.actions = MainActions(
+            shortcuts=shortcuts, icons=self.icons.dark, parent=self
+        )
 
         # Core widget: Menubar
         self.widgets.menubar = MainMenuBar(

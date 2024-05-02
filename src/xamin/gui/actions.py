@@ -11,56 +11,37 @@ from thatway import Config
 from .icons import get_icons
 from .shortcuts import shortcuts
 
+__all__ = ("MainActions",)
 
-actions = None
 
-
-def get_actions(
-    parent: QWidget,
-    shortcuts: Config = shortcuts,
-    icons: SimpleNamespace | None = None,
-    scheme: str = "dark",
-) -> SimpleNamespace:
-    """Retrieve GUI actions
+class MainActions(SimpleNamespace):
+    """The GUI actions
 
     Parameters
     ----------
-    parent
-        The parent widget (main window) to implement the actions for
     shortcuts
         The namespace for shortcuts associated with actions
     icons
         The namespace to use for icons (QIcon instances)
-    scheme
-        The color scheme of the icons to use
-
-    Returns
-    -------
-    actions
-        The namespace containing actions
+    parent
+        The main window widget that controls the actions
     """
-    # Use the cached copy, if available
-    global actions
-    if actions is not None:
-        return actions
 
-    # Create the actions name space
-    actions = SimpleNamespace()
+    def __init__(
+        self, shortcuts: Config, icons: SimpleNamespace, parent: QWidget | None = None
+    ):
+        super().__init__()
 
-    # Get the icon namespace to use with scheme
-    icons = icons if icons is None else get_icons()
-    icons = getattr(icons, scheme)
+        # Get the icon namespace to use with scheme
+        icons = icons if icons is not None else get_icons()
 
-    # Exit application action
-    actions.exit = QAction(icons.actions.application_exit, "Exit", parent=parent)
-    actions.exit.setShortcut(shortcuts.exit)
-    actions.exit.setStatusTip("Exit")
-    actions.exit.triggered.connect(parent.close)
+        # Exit application action
+        self.exit = QAction(icons.actions.application_exit, "Exit", parent=parent)
+        self.exit.setShortcut(shortcuts.exit)
+        self.exit.setStatusTip("Exit")
+        self.exit.triggered.connect(parent.close)
 
-    # Open application action
-    actions.open = QAction(icons.actions.document_open, "Open", parent=parent)
-    actions.open.setShortcut(shortcuts.open)
-    actions.open.setStatusTip("Open")
-    # actions.open.triggered.connect(self.add_project_files)
-
-    return actions
+        # Open application action
+        self.open = QAction(icons.actions.document_open, "Open", parent=parent)
+        self.open.setShortcut(shortcuts.open)
+        self.open.setStatusTip("Open")
