@@ -21,7 +21,7 @@ from thatway import Setting
 
 from ..entry import Entry
 from .icons import get_icons
-from .shortcuts import shortcuts
+from .shortcuts import Shortcuts
 from .actions import MainActions
 from .menubar import MainMenuBar
 from .toolbar import MainToolbar
@@ -32,15 +32,6 @@ __all__ = (
     "MainApplication",
     "MainWindow",
 )
-
-ctrl = "Cmd" if system() == "Darwin" else "Ctrl"
-
-
-class Shortcuts:
-    """Application keyboard shortcuts"""
-
-    open = Setting(f"{ctrl}+o", desc="Open document")
-    quit = Setting(f"{ctrl}+q", desc="Exit application")
 
 
 class MainApplication(QApplication):
@@ -86,6 +77,9 @@ class MainWindow(QMainWindow):
     #: Actions for menu and tool bars
     actions: SimpleNamespace
 
+    #: Keyboard shortcuts for the main window
+    shortcuts: Shortcuts
+
     #: Fonts
     fonts: t.Dict[str, QFont]
 
@@ -112,6 +106,7 @@ class MainWindow(QMainWindow):
         # Configure assets
         self.fonts = {"default": QFont(self.font_family, self.font_size)}
         self.icons = get_icons()
+        self.shortcuts = Shortcuts()
         self.entries = []
         self.views = []
         self.widgets = SimpleNamespace()
@@ -124,7 +119,7 @@ class MainWindow(QMainWindow):
         # Create core widgets
         self.create_central_widget(*args)
         self.actions = MainActions(
-            shortcuts=shortcuts, icons=self.icons.dark, parent=self
+            shortcuts=self.shortcuts, icons=self.icons.dark, parent=self
         )
 
         # Core widget: Menubar

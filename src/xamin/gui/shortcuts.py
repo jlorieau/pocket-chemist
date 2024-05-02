@@ -2,9 +2,11 @@
 Keyboard shortcuts for the GUI
 """
 
-from thatway import Setting, config
+from thatway import Setting
 
-shortcuts = config.shortcuts
 
-shortcuts.open = Setting("Ctrl+O", desc="Open documents")
-shortcuts.exit = Setting("Ctrl+Q", desc="Quit application")
+class Shortcuts:
+    """Global shortcuts for the app"""
+
+    open = Setting("Ctrl+O", desc="Open documents")
+    exit = Setting("Ctrl+Q", desc="Quit application")
