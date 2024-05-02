@@ -119,7 +119,7 @@ class MainWindow(QMainWindow):
         # Create core widgets
         self.create_central_widget(*args)
         self.actions = MainActions(
-            shortcuts=self.shortcuts, icons=self.icons.dark, parent=self
+            shortcuts=self.shortcuts, icons=self.icons.current, parent=self
         )
 
         # Core widget: Menubar
