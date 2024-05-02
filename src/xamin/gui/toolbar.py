@@ -13,7 +13,19 @@ __all__ = ("MainToolbar",)
 
 
 class MainToolbar(QToolBar):
-    """Main toolbar for the application"""
+    """Main toolbar for the application
+
+    Parameters
+    ----------
+    title
+        The title for the toolbar
+    parent
+        The parent widget that owns this toolbar
+    font
+        The font to use is styling this toolbar
+    actions
+        The actions namespace for the main window
+    """
 
     # Settings
     orientation = Setting("vertical", desc="Default toolbar orientation")
@@ -27,19 +39,6 @@ class MainToolbar(QToolBar):
         font: QFont | None = None,
         actions: SimpleNamespace | None = None,
     ):
-        """Initialize the MainToolbar
-
-        Parameters
-        ----------
-        title
-            The title for the toolbar
-        parent
-            The parent widget that owns this toolbar
-        font
-            The font to use is styling this toolbar
-        actions
-            The actions namespace for the main window
-        """
         title = title or "toolbar"
         super().__init__(title, parent)
 
