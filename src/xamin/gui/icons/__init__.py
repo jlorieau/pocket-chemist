@@ -8,48 +8,49 @@ from pathlib import Path
 
 from PyQt6.QtGui import QIcon, QPixmap
 
-icons_basedir = Path(__file__).parent
+__all__ = ("Icons",)
 
-# Create the icons namespaces
-icons = None
-
-re_underscore = re.compile(r"-")
-re_strip_suffix = re.compile(r"\..*")
+_icons_basedir = Path(__file__).parent
 
 
-def get_icons():
+_re_underscore = re.compile(r"-")
+_re_strip_suffix = re.compile(r"\..*")
+
+
+class Icons(SimpleNamespace):
     """Generate the icons namespace with QIcon entries"""
-    # Return the loaded icons, if available
-    global icons
-    if icons is not None:
-        return icons
 
-    icons = SimpleNamespace()
-    icons.light = SimpleNamespace()
-    icons.dark = SimpleNamespace()
-    icons.current = icons.dark
+    #: Color schemes for icons
+    light: SimpleNamespace
+    dark: SimpleNamespace
 
-    # Reconstruct the directory structure as nested namespaces
-    for abs_filepath in icons_basedir.glob("**/*.svg"):
-        rel_filepath = abs_filepath.relative_to(icons_basedir)
+    #: The currently selected color scheme
+    current: SimpleNamespace
 
-        # ex: ["dark", "actions", "document-open.svg"]
-        parts = rel_filepath.parts
+    def __init__(self):
+        self.light = SimpleNamespace()
+        self.dark = SimpleNamespace()
+        self.current = self.dark
 
-        # Select the namescape
-        ns = icons
-        for part in parts[:-1]:
-            if not hasattr(ns, part):
-                setattr(ns, part, SimpleNamespace())
-            ns = getattr(ns, part)
+        # Reconstruct the directory structure as nested namespaces
+        for abs_filepath in _icons_basedir.glob("**/*.svg"):
+            rel_filepath = abs_filepath.relative_to(_icons_basedir)
 
-        # Get the icon image filename and icon name, based on the filename
-        filename = parts[-1]
-        name = re_underscore.sub("_", filename)  # convert "-" to "_"
-        name = re_strip_suffix.sub("", name)  # remove extensions
+            # ex: ["dark", "actions", "document-open.svg"]
+            parts = rel_filepath.parts
 
-        # Create the icon
-        icon = QIcon(QPixmap(str(abs_filepath)))
-        setattr(ns, name, icon)
+            # Select the namescape
+            ns = self
+            for part in parts[:-1]:
+                if not hasattr(ns, part):
+                    setattr(ns, part, SimpleNamespace())
+                ns = getattr(ns, part)
 
-    return icons
+            # Get the icon image filename and icon name, based on the filename
+            filename = parts[-1]
+            name = _re_underscore.sub("_", filename)  # convert "-" to "_"
+            name = _re_strip_suffix.sub("", name)  # remove extensions
+
+            # Create the icon
+            icon = QIcon(QPixmap(str(abs_filepath)))
+            setattr(ns, name, icon)

@@ -20,7 +20,7 @@ from loguru import logger
 from thatway import Setting
 
 from ..entry import Entry
-from .icons import get_icons
+from .icons import Icons
 from .shortcuts import Shortcuts
 from .actions import MainActions
 from .menubar import MainMenuBar
@@ -105,7 +105,7 @@ class MainWindow(QMainWindow):
 
         # Configure assets
         self.fonts = {"default": QFont(self.font_family, self.font_size)}
-        self.icons = get_icons()
+        self.icons = Icons()
         self.shortcuts = Shortcuts()
         self.entries = []
         self.views = []
