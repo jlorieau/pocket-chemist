@@ -7,65 +7,67 @@ from types import SimpleNamespace
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QToolBar
 from PyQt6.QtGui import QFont
-from thatway import config, Setting
+from thatway import Setting
 
-toolbar = None
-
-# Toolbar settings
-config.toolbar.orientation = Setting("vertical", desc="Default toolbar orientation")
-config.toolbar.movable = Setting(False, desc="Allow toolbar to be repositioned")
-config.toolbar.location = Setting("left", desc="Default location of the toolbar")
+__all__ = ("MainToolbar",)
 
 
-def get_toolbar(
-    parent: QWidget, actions: SimpleNamespace, font: QFont | None = None
-) -> QToolBar:
-    """Retrieve the main toolbar for the main window.
+class MainToolbar(QToolBar):
+    """Main toolbar for the application"""
 
-    Parameters
-    ----------
-    parent
-        The parent widget (main window) to implement the actions for
-    actions
-        The GUI actions associate with menubar entries
-    font
-        The font to use in rendering the menubar
+    # Settings
+    orientation = Setting("vertical", desc="Default toolbar orientation")
+    movable = Setting(False, desc="Allow toolbar to be repositioned")
+    location = Setting("left", desc="Default location of the toolbar")
 
-    Returns
-    -------
-    toolbar
-        The toolbar widget for the main window
-    """
-    # Retrieve cached version, if available
-    global toolbar
-    if toolbar is not None:
-        return toolbar
+    def __init__(
+        self,
+        title: str | None = None,
+        parent: QWidget | None = None,
+        font: QFont | None = None,
+        actions: SimpleNamespace | None = None,
+    ):
+        """Initialize the MainToolbar
 
-    # Create the toolbar
-    toolbar = QToolBar("toolbar")
+        Parameters
+        ----------
+        title
+            The title for the toolbar
+        parent
+            The parent widget that owns this toolbar
+        font
+            The font to use is styling this toolbar
+        actions
+            The actions namespace for the main window
+        """
+        title = title or "toolbar"
+        super().__init__(title, parent)
 
-    # Configure the toolbar
-    toolbar.setFont(font)
+        # Configure the toolbar
+        self.setFont(font)
 
-    orientation = (
-        Qt.Orientation.Vertical
-        if config.toolbar.orientation == "vertical"
-        else Qt.Orientation.Horizontal
-    )
-    toolbar.setOrientation(orientation)
-    toolbar.setMovable(config.toolbar.movable)
+        orientation = (
+            Qt.Orientation.Vertical
+            if self.orientation == "vertical"
+            else Qt.Orientation.Horizontal
+        )
+        self.setOrientation(orientation)
 
-    if config.toolbar.location == "left":
-        location = Qt.ToolBarArea.LeftToolBarArea
-    elif config.toolbar.location == "right":
-        location = Qt.ToolBarArea.RightToolBarArea
-    elif config.toolbar.location == "bottom":
-        location = Qt.ToolBarArea.BottomToolBarArea
-    else:
-        location = Qt.ToolBarArea.TopToolBarArea
+        self.setMovable(self.movable)
 
-    parent.addToolBar(location, toolbar)
+        if self.location == "left":
+            location = Qt.ToolBarArea.LeftToolBarArea
+        elif self.location == "right":
+            location = Qt.ToolBarArea.RightToolBarArea
+        elif self.location == "bottom":
+            location = Qt.ToolBarArea.BottomToolBarArea
+        else:
+            location = Qt.ToolBarArea.TopToolBarArea
 
-    # Add toolbar actions
-    toolbar.addAction(actions.open)
-    toolbar.addAction(actions.exit)
+        if parent is not None:
+            parent.addToolBar(location, self)
+
+        # Add toolbar actions
+        if actions is not None:
+            self.addAction(actions.open)
+            self.addAction(actions.exit)

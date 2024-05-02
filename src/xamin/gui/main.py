@@ -23,7 +23,7 @@ from ..entry import Entry
 from .icons import get_icons
 from .actions import get_actions
 from .menubar import get_menubar
-from .toolbar import get_toolbar
+from .toolbar import MainToolbar
 from .panels import PanelStack
 from .view_models import BaseViewModel
 
@@ -126,7 +126,7 @@ class MainWindow(QMainWindow):
         self.widgets.menubar = get_menubar(
             parent=self, actions=self.actions, font=self.get_font("menubar")
         )
-        self.widgets.toolbar = get_toolbar(
+        self.widgets.toolbar = MainToolbar(
             parent=self, actions=self.actions, font=self.get_font("toolbar")
         )
 
