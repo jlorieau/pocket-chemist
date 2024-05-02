@@ -8,9 +8,6 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QAction
 from thatway import Config
 
-from .icons import get_icons
-from .shortcuts import shortcuts
-
 __all__ = ("MainActions",)
 
 
@@ -31,9 +28,6 @@ class MainActions(SimpleNamespace):
         self, shortcuts: Config, icons: SimpleNamespace, parent: QWidget | None = None
     ):
         super().__init__()
-
-        # Get the icon namespace to use with scheme
-        icons = icons if icons is not None else get_icons()
 
         # Exit application action
         self.exit = QAction(icons.actions.application_exit, "Exit", parent=parent)
