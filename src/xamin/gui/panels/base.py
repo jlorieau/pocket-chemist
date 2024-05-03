@@ -6,7 +6,7 @@ import typing as t
 from types import SimpleNamespace
 
 from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
 
 __all__ = ("BasePanel",)
@@ -34,10 +34,12 @@ class BasePanel(QWidget):
     #: widgets.main  (the main widget of the panel)
     widgets: SimpleNamespace
 
-    #: A listing of instantiated subclasses
-    _subclasses = []
+    #: Signal emitted when a file is opened.
+    #: Arguments: Entry instance, ViewModel instance
+    fileopen = pyqtSignal(object, object)
 
-    #: The panel models
+    #: A listing of subclasses
+    _subclasses = []
 
     def __init_subclass__(
         cls, name: str, toolbar_icon: QIcon | None = None, **kwargs

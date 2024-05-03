@@ -2,15 +2,28 @@
 A file explorer panel
 """
 
+from pathlib import Path
+
 from PyQt6.QtCore import QDir
 from PyQt6.QtGui import QFileSystemModel
 from PyQt6.QtWidgets import QTreeView
+from loguru import logger
 
 from .base import BasePanel
+from ..dialogs import ViewSelector
+
+__all__ = ("FileExplorer",)
 
 
 class FileExplorer(BasePanel, name="EXPLORER"):
     """A file explorer panel widget"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Connect signals
+        view: QTreeView = self.widgets.view
+        view.doubleClicked.connect(self.load_filepath)
 
     def create_main_widget(self):
 
@@ -33,3 +46,24 @@ class FileExplorer(BasePanel, name="EXPLORER"):
         view.setHeaderHidden(True)  # don't show header
 
         return view
+
+    def load_filepath(self, index):
+        """Load the selected filepath"""
+        # Find the selected item
+        item = self.widgets.view.selectedIndexes()[0]
+        model: QFileSystemModel = item.model()
+        filepath: str = model.filePath(index)
+        logger.debug(f"Filepath selected: {filepath}")
+
+        # Load a ViewSelector dialog
+        dialog = ViewSelector(filepath=Path(filepath), parent=self)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            entry_type = dialog.selected_entry_type()
+            view_model_type = dialog.selected_view_model_type()
+
+            # Create the entry and view mode
+            entry = entry_type(path=filepath)
+            view_model = view_model_type(entry=entry)
+
+            # Emit the signal
+            self.fileopen.emit(entry, view_model)
