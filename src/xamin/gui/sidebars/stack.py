@@ -3,11 +3,11 @@ from PyQt6.QtWidgets import QStackedWidget, QWidget
 
 from .explorer import FileExplorer
 
-__all__ = ("PanelStack",)
+__all__ = ("SidebarStack",)
 
 
-class PanelStack(QStackedWidget):
-    """A stacked widget for the different panels"""
+class SidebarStack(QStackedWidget):
+    """A stacked widget for the different sidebars"""
 
     #: Signal emitted when a file is opened.
     #: Arguments: Entry instance, ViewModel instance

@@ -5,12 +5,10 @@ The main (root) window
 import typing as t
 from types import SimpleNamespace
 from pathlib import Path
-from platform import system
 
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
-    QTextEdit,
     QSplitter,
     QTabWidget,
     QApplication,
@@ -25,7 +23,7 @@ from .shortcuts import Shortcuts
 from .actions import MainActions
 from .menubar import MainMenuBar
 from .toolbar import MainToolbar
-from .panels import PanelStack
+from .sidebars import SidebarStack
 from .view_models import BaseViewModel
 
 __all__ = (
@@ -72,7 +70,7 @@ class MainWindow(QMainWindow):
     font_size = Setting(15, desc="Default font size")
 
     #: Default project list options
-    panels_width = Setting(10, desc="Default width (chars) for panels")
+    sidebars_width = Setting(10, desc="Default width (chars) for sidebars")
 
     #: Actions for menu and tool bars
     actions: SimpleNamespace
@@ -97,6 +95,7 @@ class MainWindow(QMainWindow):
     #:   widgets.central  (central widget of the root window)
     #:   widgets.menubar  (root menubar widget)
     #:   widgets.toolbar  (root toolbar widget)
+    #:   widgets.sidebars (sidebars stack)
     #:   widgets.tabs     (tabs bar widget)
     widgets: SimpleNamespace
 
@@ -143,9 +142,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("xamin")
         self.show()
 
-        # Add tab widget
-        self.widgets.tabs.addTab(QTextEdit(), "Text edit")
-
     def create_tabs(self):
         """Create the tabs widget"""
         # Create the widget
@@ -169,15 +165,18 @@ class MainWindow(QMainWindow):
 
         # Create sub-widgets
         self.create_tabs()
-        self.widgets.panels = PanelStack(parent=self)
+        self.widgets.sidebars = SidebarStack(parent=self)
+
+        # Configure sidebar stack signals
+        self.widgets.sidebars.fileopen.connect(self.add_entry)
 
         # Format the widgets in the workspace
-        splitter.addWidget(self.widgets.panels)
+        splitter.addWidget(self.widgets.sidebars)
         splitter.addWidget(self.widgets.tabs)
 
         # Configure the splitter
         font = self.get_font()
-        width = font.pointSize() * self.panels_width
+        width = font.pointSize() * self.sidebars_width
         current_size = self.size()
         flex_width = current_size.width() - width
         splitter.setSizes((width, flex_width))
@@ -194,3 +193,8 @@ class MainWindow(QMainWindow):
         earlier names."""
         match_names = [name for name in names if name in self.fonts]
         return self.fonts[match_names[0]] if match_names else self.fonts["default"]
+
+    def add_entry(self, entry: Entry, viewmodel: BaseViewModel):
+        """Add an Entry (and corresponding ViewModel) to the tab manager"""
+        tabs: QTabWidget = self.widgets.tabs
+        tabs.addTab(viewmodel.view, "Model")

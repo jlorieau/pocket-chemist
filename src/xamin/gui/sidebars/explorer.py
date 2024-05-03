@@ -1,5 +1,5 @@
 """
-A file explorer panel
+A file explorer sidebar
 """
 
 from pathlib import Path
@@ -9,14 +9,14 @@ from PyQt6.QtGui import QFileSystemModel
 from PyQt6.QtWidgets import QTreeView
 from loguru import logger
 
-from .base import BasePanel
+from .base import BaseSidebar
 from ..dialogs import ViewSelector
 
 __all__ = ("FileExplorer",)
 
 
-class FileExplorer(BasePanel, name="EXPLORER"):
-    """A file explorer panel widget"""
+class FileExplorer(BaseSidebar, name="EXPLORER"):
+    """A file explorer sidebar widget"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,14 +27,14 @@ class FileExplorer(BasePanel, name="EXPLORER"):
 
     def create_main_widget(self):
 
-        # Create the File explorer panel
+        # Create the File explorer sidebar
         model = QFileSystemModel()
         model.setRootPath(QDir.rootPath())
 
         self.widgets.view = QTreeView()
         view = self.widgets.view
 
-        # Configure the file explorer panel
+        # Configure the file explorer sidebar
         view.setModel(model)
         view.setRootIndex(model.index(QDir.homePath()))
 

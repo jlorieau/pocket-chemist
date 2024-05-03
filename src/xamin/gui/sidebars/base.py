@@ -9,29 +9,29 @@ from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
 
-__all__ = ("BasePanel",)
+__all__ = ("BaseSidebar",)
 
 
-class BasePanel(QWidget):
-    """Base Panel class to define the panel interface
+class BaseSidebar(QWidget):
+    """Base Panel class to define the sidebar interface
 
     Parameters
     ----------
     heading
-        The heading string of the panel
+        The heading string of the sidebar
     toolbar_icon
         The icon to use in the toolbar
     """
 
-    #: The name of the panel
+    #: The name of the sidebar
     name: str
 
-    #: The icon to identify the panel in the toolbar
+    #: The icon to identify the sidebar in the toolbar
     toolbar_icon: QIcon
 
-    #: The panel sub-widgets
-    #: widgets.heading  (the heading of the panel)
-    #: widgets.main  (the main widget of the panel)
+    #: The sidebar sub-widgets
+    #: widgets.heading  (the heading of the sidebar)
+    #: widgets.main  (the main widget of the sidebar)
     widgets: SimpleNamespace
 
     #: Signal emitted when a file is opened.
@@ -47,7 +47,7 @@ class BasePanel(QWidget):
         """Initialize required class attributes for subclasses"""
         cls.name = name
         cls.toolbar_icon = toolbar_icon
-        BasePanel._subclasses.append(cls)
+        BaseSidebar._subclasses.append(cls)
         return super().__init_subclass__(**kwargs)
 
     def __init__(self, *args, **kwargs):
@@ -79,10 +79,10 @@ class BasePanel(QWidget):
         self.setLayout(layout)
 
     @classmethod
-    def subclasses(cls) -> t.Tuple["BasePanel"]:
+    def subclasses(cls) -> t.Tuple["BaseSidebar"]:
         """Return all concrete subclasses of this class"""
-        return tuple(BasePanel._subclasses)
+        return tuple(BaseSidebar._subclasses)
 
     def create_main_widget(self):
-        """Create the main widget of the panel"""
+        """Create the main widget of the sidebar"""
         return QWidget
