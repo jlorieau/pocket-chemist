@@ -107,6 +107,7 @@ def test_project_constructor_representer(tmp_path, text_entry):
     # Try to recreate the project from the yaml text
     load = yaml.load(text, Loader=loader)
 
+    assert isinstance(load, Project)
     assert project.path == load.path
     assert project.meta == load.meta
 
