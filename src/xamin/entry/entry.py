@@ -215,8 +215,10 @@ class Entry(ABC, t.Generic[T]):
             score = cls.score()
             is_type = cls.is_type(path=path, hint=hint)
 
+            # Set a new higher score class if a compatible class if found
             if score > highest_score and is_type:
                 best_cls = cls
+                highest_score = score
 
         if best_cls is not None:
             logger.debug(f"Found best Entry class '{best_cls}' for path: {path}")
