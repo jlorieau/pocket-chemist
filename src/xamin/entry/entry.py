@@ -127,9 +127,10 @@ class Entry(ABC, t.Generic[T]):
         return t.get_args(cls.__orig_bases__[0])
 
     @staticmethod
-    def subclasses() -> t.Set[t.Type["Entry"]]:
-        """Retrieve a set of all Entry subclasses."""
-        return Entry._subclasses.copy()
+    def subclasses() -> t.List[t.Type["Entry"]]:
+        """Retrieve a list of Entry subclasses sorted by score."""
+        sort = sorted([cls for cls in Entry._subclasses], key=lambda cls: cls.score())
+        return list(sort)
 
     @classmethod
     def get_hint(cls, path: Path) -> Hint | None:
