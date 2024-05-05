@@ -110,7 +110,7 @@ class Project(YamlEntry):
 
         # Update the entries data
         entries_state = state.get("entries", OrderedDict())
-        subclasses = {cls.__name__: cls for _, cls in self.subclasses()}
+        subclasses = self.subclasses()
         project_path = self.path.parent if self.path is not None else None
 
         for name, entry_state in entries_state.items():

@@ -71,13 +71,16 @@ class Entry(ABC, t.Generic[T]):
     _loaded_hash: str = ""
 
     #: The mtime of the data loaded from a file
-    _data_mtime = None
+    _data_mtime: float | None = None
 
     #: The cached Entry subclasses
-    _subclasses = None
+    _subclasses: t.Set[t.Type["Entry"]] = set()
+
+    def __init_subclass__(cls):
+        Entry._subclasses.add(cls)
 
     def __init__(self, path: t.Optional[Path] = None):
-        self.path = path
+        self.path = Path(path) if path is not None else None
         super().__init__()
 
     def __repr__(self):
@@ -124,20 +127,9 @@ class Entry(ABC, t.Generic[T]):
         return t.get_args(cls.__orig_bases__[0])
 
     @staticmethod
-    def subclasses() -> t.List[t.Tuple[int, "Entry"]]:
-        """Retrieve all subclasses of the Entry class as well as their class hierarchy
-        level."""
-        if Entry._subclasses is None:
-            Entry._subclasses = [
-                (c.depth(), c) for c in all_subclasses(Entry) if hasattr(c, "depth")
-            ]
-        return Entry._subclasses
-
-    @classmethod
-    def depth(cls):
-        """Return the class hierarchy depth for this class"""
-        parent_depths = [b.depth() for b in cls.__bases__ if hasattr(b, "depth")]
-        return parent_depths[0] + 1 if parent_depths else 0
+    def subclasses() -> t.Set[t.Type["Entry"]]:
+        """Retrieve a set of all Entry subclasses."""
+        return tuple(Entry._subclasses)
 
     @classmethod
     def get_hint(cls, path: Path) -> Hint | None:
@@ -216,11 +208,14 @@ class Entry(ABC, t.Generic[T]):
 
         # Find the best class from those with the highest class hierarchy level
         # i.e. the more subclassed, the more specific is a type
-        highest_hierarchy = 0
+        highest_score = 0
         best_cls = None
 
-        for hierarchy, cls in cls.subclasses():
-            if hierarchy > highest_hierarchy and cls.is_type(path=path, hint=hint):
+        for cls in cls.subclasses():
+            score = cls.score()
+            is_type = cls.is_type(path=path, hint=hint)
+
+            if score > highest_score and is_type:
                 best_cls = cls
 
         if best_cls is not None:
@@ -228,6 +223,17 @@ class Entry(ABC, t.Generic[T]):
             return best_cls
         else:
             return None
+
+    @classmethod
+    def score(cls) -> int:
+        """Evaluate the score (precedence) of this class in relation to other
+        concrete Entry classes"""
+        if hasattr(cls.__base__, "score"):
+            # Increment the score by 10 for each class inheritance
+            return cls.__base__.score() + 10
+        else:
+            # Start at a base score of 0 for the base "Entry" class
+            return 0
 
     @property
     def is_stale(self) -> bool:

@@ -14,6 +14,12 @@ class BinaryEntry(Entry[bytes]):
     encoding = bytes
 
     @classmethod
+    def score(cls) -> int:
+        """Override the Entry base class score to give this generic class lower
+        precedence than more specializes entry types"""
+        return 5
+
+    @classmethod
     def is_type(cls, path: Path, hint: Hint | None = None) -> bool:
         """Overrides  parent class method to test whether path is a BinaryEntry.
 

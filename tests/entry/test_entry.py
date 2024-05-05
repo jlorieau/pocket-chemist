@@ -6,29 +6,31 @@ from copy import deepcopy
 import pytest
 from xamin.entry import (
     Entry,
-    TextEntry,
-    BinaryEntry,
-    CsvEntry,
     MissingPath,
     FileChanged,
 )
 
 
-def test_entry_suclasses():
+def test_entry_suclasses(entry):
     """Test the Entry.subclasses() static method"""
     subclasses = Entry.subclasses()
-    print(subclasses)
-    assert (1, TextEntry) in subclasses
-    assert (1, BinaryEntry) in subclasses
-    assert (1, CsvEntry) in subclasses
+    assert entry.__class__ in subclasses
 
 
-def test_entry_depth():
-    """Test the Entry.depth() baseclass method."""
-    assert Entry.depth() == 0
-    assert TextEntry.depth() == 1
-    assert BinaryEntry.depth() == 1
-    assert CsvEntry.depth() == 1
+def test_entry_depth(entry):
+    """Test the Entry.score() class method."""
+    entry_cls = entry.__class__
+
+    # Concrete classes should have a score higher than the base score of 0
+    assert entry_cls.score() > 0
+
+    if entry_cls.__name__ in ("TextEntry", "BinaryEntry"):
+        # These classes are generic have lower score than more specialize classes
+        assert entry_cls.score() == 5
+    else:
+        # Other concrete classes should have a score of 10 higher than the base class
+        parent_cls = entry_cls.__mro__[1]
+        assert entry_cls.score() == parent_cls.score() + 10
 
 
 def test_entry_getstate(entry):
