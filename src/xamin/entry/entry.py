@@ -129,7 +129,7 @@ class Entry(ABC, t.Generic[T]):
     @staticmethod
     def subclasses() -> t.Set[t.Type["Entry"]]:
         """Retrieve a set of all Entry subclasses."""
-        return tuple(Entry._subclasses)
+        return Entry._subclasses.copy()
 
     @classmethod
     def get_hint(cls, path: Path) -> Hint | None:
