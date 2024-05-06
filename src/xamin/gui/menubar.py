@@ -7,10 +7,10 @@ from types import SimpleNamespace
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QWidget, QMenuBar
 
-__all__ = ("MainMenuBar",)
+__all__ = ("Menubar",)
 
 
-class MainMenuBar(QMenuBar):
+class Menubar(QMenuBar):
     """The menubar for the main window
 
     Parameters

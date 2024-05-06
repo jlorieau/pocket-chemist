@@ -8,10 +8,10 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QAction
 from thatway import Config
 
-__all__ = ("MainActions",)
+__all__ = ("Actions",)
 
 
-class MainActions(SimpleNamespace):
+class Actions(SimpleNamespace):
     """The GUI actions
 
     Parameters

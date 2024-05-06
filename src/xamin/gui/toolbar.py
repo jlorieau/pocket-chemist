@@ -9,10 +9,10 @@ from PyQt6.QtWidgets import QWidget, QToolBar
 from PyQt6.QtGui import QFont
 from thatway import Setting
 
-__all__ = ("MainToolbar",)
+__all__ = ("Toolbar",)
 
 
-class MainToolbar(QToolBar):
+class Toolbar(QToolBar):
     """Main toolbar for the application
 
     Parameters
