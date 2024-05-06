@@ -93,9 +93,9 @@ class Assets:
                     if not hasattr(namespace, part):
                         # Create the sub namespace
                         setattr(namespace, part, SimpleNamespace())
-                    else:
-                        # Otherwise retrieve the sub namespace
-                        namespace = getattr(namespace, part)
+
+                    # Retrieve the sub namespace
+                    namespace = getattr(namespace, part)
 
                 # Convert the asset filename into a namespace attribute name
                 # e.g. "document-open.svg" -> "document_open"
