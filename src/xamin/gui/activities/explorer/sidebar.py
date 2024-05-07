@@ -70,12 +70,12 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
     ) -> t.Tuple[Path, ...]:
         """Retrieve the selected filepath"""
         # Retrieve selected indices if no indices were passed
-        view: QTreeView = self.widget.view
+        view: QTreeView = self.widgets.view
         indices: t.Tuple[QModelIndex] = indices if indices else view.selectedIndexes()
 
         filepaths = []
         for index in indices:
-            filepath = index.model().filepath(index)
+            filepath = index.model().filePath(index)
             filepaths.append(Path(filepath))
 
         return filepaths
@@ -86,7 +86,7 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
         """Load the selected filepaths as entries into an activity"""
         # Find the selected item
         filepaths = self.selected_filepaths(*indices)
-        logger.info(f"Loading filepaths: {', '.join(filepaths)}")
+        logger.info(f"Loading filepaths: {', '.join(map(str, filepaths))}")
 
         # Load a ActivitySelector dialog
         activities = []
