@@ -36,7 +36,9 @@ class MainApplication(QApplication):
 
     style = Setting("Fusion", desc="Widget style name")
 
-    stylesheet_file = Setting("styles/dark.qss", desc="Widget stylesheet file to use")
+    stylesheet_file = Setting(
+        "assets/styles/dark.qss", desc="Widget stylesheet file to use"
+    )
 
     def __init__(self, argv: t.List[str]) -> None:
         super().__init__(argv)
@@ -67,7 +69,7 @@ class MainWindow(QMainWindow):
     font_size = Setting(15, desc="Default font size")
 
     #: Default project list options
-    sidebars_width = Setting(10, desc="Default width (chars) for sidebars")
+    sidebars_width = Setting(12, desc="Default width (chars) for sidebars")
 
     #: Fonts
     fonts: t.Dict[str, QFont]
@@ -215,14 +217,16 @@ class MainWindow(QMainWindow):
         logger.info(f"Loading activity '{activity}'")
 
         # Connect the sidebar(s)
+        sidebars: QStackedWidget = self.widgets.sidebars
         for sidebar in activity.sidebars:
             logger.info(f"Adding sidebar '{sidebar}'")
 
             # Add the widget
-            self.widgets.sidebars.addWidget(sidebar)
+            sidebars.addWidget(sidebar)
 
             # Add any actions to the toolbar
             action = sidebar.action
+            action.triggered.connect(lambda: sidebars.setCurrentWidget(sidebar))
             self.widgets.toolbar.addAction(action)
 
         # Connect the view(s)
