@@ -7,7 +7,7 @@ import re
 from types import SimpleNamespace
 from pathlib import Path
 
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtGui import QIcon
 from loguru import logger
 
 __all__ = ("Icons",)
@@ -140,4 +140,4 @@ class Icons(Assets, relpath=Path("icons"), extensions=("*.svg",)):
 
     def convert(self, filepath: Path):
         """Convert filepath to a QIcon object"""
-        return QIcon(QPixmap(str(filepath)))
+        return QIcon(str(filepath))
