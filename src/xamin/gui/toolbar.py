@@ -65,8 +65,3 @@ class Toolbar(QToolBar):
 
         if parent is not None:
             parent.addToolBar(location, self)
-
-        # Add toolbar actions
-        if actions is not None:
-            self.addAction(actions.open)
-            self.addAction(actions.exit)
