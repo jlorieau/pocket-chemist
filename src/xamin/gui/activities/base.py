@@ -40,6 +40,9 @@ class BaseActivity(QObject):
     #: The sidebar(s) associated with the view
     sidebars: t.List["BaseSidebar"]
 
+    #: Whether the activity is "uncloseable"
+    persistent: bool = False
+
     #: The parent widget
     parent: QWidget
 
@@ -55,13 +58,13 @@ class BaseActivity(QObject):
     def __init_subclass__(cls) -> None:
         BaseActivity._subclasses.append(cls)
 
-    def __init__(self, *entries: t.Tuple[Entry], parent=QWidget | None):
-        super().__init__(parent=parent)
+    def __init__(self, *entries: t.Tuple[Entry], parent: t.Optional[QWidget] = None):
+        super().__init__(parent)
 
         # Configure attributes
         self.entries = list(entries)
 
-        for attr in ("model", "view", "sidebar"):
+        for attr in ("models", "views", "sidebars"):
             if not hasattr(self, attr):
                 setattr(self, attr, [])
 

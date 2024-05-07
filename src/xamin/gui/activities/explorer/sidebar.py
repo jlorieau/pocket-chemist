@@ -29,7 +29,7 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
     icon: QIcon
 
     def __init__(
-        self, *args, rootpath: str | None, icon: QIcon | None = None, **kwargs
+        self, *args, rootpath: str | None = None, icon: QIcon | None = None, **kwargs
     ):
         # Set a default icon, if one isn't specified
         if icon is None:
@@ -42,7 +42,7 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
 
         # Connect signals
         view: QTreeView = self.widgets.view
-        view.doubleClicked.connect(self.load_filepath)
+        view.doubleClicked.connect(self.load_activity)
 
     def create_main_widget(self):
         # Create the File explorer sidebar
