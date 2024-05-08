@@ -33,6 +33,9 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
     #: Default icon, if one isn't specified
     icon: QIcon
 
+    #: The file system model for the file explorer view
+    model: QFileSystemModel
+
     def __init__(
         self,
         *args,
@@ -62,12 +65,16 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
         view: QTreeView = self.widgets.view
         view.doubleClicked.connect(self.load_activity)
 
-    def create_main_widget(self):
-        # Create the File explorer sidebar
-        model = QFileSystemModel()
-        model.setRootPath(QDir.rootPath())
+    def reset_main_widget(self):
+        # Create the File explorer sidebar model
+        if not hasattr(self, "model") or self.model is None:
+            self.model = QFileSystemModel()
+            self.model.setRootPath(QDir.rootPath())
+        model = self.model
 
-        self.widgets.view = QTreeView()
+        # Create the File explorer sidebar view
+        if not hasattr(self.widgets, "view") or self.widgets.view is None:
+            self.widgets.view = QTreeView()
         view = self.widgets.view
 
         # Configure the file explorer sidebar

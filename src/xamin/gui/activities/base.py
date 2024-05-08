@@ -58,7 +58,9 @@ class BaseActivity(QObject):
     def __init_subclass__(cls) -> None:
         BaseActivity._subclasses.append(cls)
 
-    def __init__(self, *entries: t.Tuple[Entry], parent: t.Optional[QWidget] = None):
+    def __init__(
+        self, *entries: t.Tuple[Entry, ...], parent: t.Optional[QWidget] = None
+    ):
         super().__init__(parent)
 
         # Configure attributes
@@ -139,7 +141,7 @@ class BaseSidebar(QWidget):
         cls.name = name
         BaseSidebar._subclasses.append(cls)
 
-    def __init__(self, *args, icon: QIcon | None, **kwargs):
+    def __init__(self, *args, icon: t.Optional[QIcon] = None, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Create the widgets
@@ -149,7 +151,7 @@ class BaseSidebar(QWidget):
             Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
         )
 
-        self.widgets.main = self.create_main_widget()
+        self.widgets.main = self.reset_main_widget()
 
         # Create the models namespace
         self.models = SimpleNamespace()
@@ -177,6 +179,6 @@ class BaseSidebar(QWidget):
         """Return all concrete subclasses of this class"""
         return tuple(BaseSidebar._subclasses)
 
-    def create_main_widget(self):
-        """Create the main widget of the sidebar"""
-        return QWidget
+    def reset_main_widget(self):
+        """Create and reset the main widget of the sidebar"""
+        return QWidget()
