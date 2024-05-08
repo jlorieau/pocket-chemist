@@ -22,23 +22,41 @@ __all__ = ("FileExplorerSidebar",)
 class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
     """The file explorer sidebar"""
 
-    #: The initial path to use for the file explorer options: "pwd", "/", "~"
-    rootpath: str | Path = Setting("pwd", desc="Default root path for file explorer")
+    #: The root path to use with the file explorer.
+    rootpath: Path
+
+    #: The default root path to use for the file explorer options: "pwd", "/", "~"
+    default_rootpath: str | Path = Setting(
+        "cwd", desc="Default root path for file explorer"
+    )
 
     #: Default icon, if one isn't specified
     icon: QIcon
 
     def __init__(
-        self, *args, rootpath: str | None = None, icon: QIcon | None = None, **kwargs
+        self,
+        *args,
+        rootpath: t.Optional[str] = None,
+        icon: t.Optional[QIcon] = None,
+        **kwargs,
     ):
+        # Set the rootpath
+        rootpath = rootpath if rootpath is not None else self.default_rootpath
+
+        if isinstance(rootpath, str):
+            # Deal with special values for the rootpath, like cwd (current workind
+            # directory) and pwd (present working directory)
+            if rootpath in ("cwd", "pwd"):
+                rootpath = Path.cwd()
+            rootpath = Path(rootpath)
+        self.rootpath = rootpath.expanduser()
+
         # Set a default icon, if one isn't specified
         if icon is None:
             icons = Icons("current")
             icon = icons.actions.folders
         self.icon = icon
         super().__init__(*args, icon=icon, **kwargs)  # parent runs create_main_widget
-
-        # Set the rootpath
 
         # Connect signals
         view: QTreeView = self.widgets.view
@@ -54,7 +72,8 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
 
         # Configure the file explorer sidebar
         view.setModel(model)
-        view.setRootIndex(model.index(QDir.homePath()))
+        view.setRootIndex(model.index(str(self.rootpath)))
+        logger.info(f"FileExplorerSidebar loaded rootpath {self.rootpath}")
 
         view.setIndentation(10)  # the intentation level of children
 
