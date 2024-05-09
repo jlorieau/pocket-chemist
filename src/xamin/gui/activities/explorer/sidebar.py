@@ -12,14 +12,22 @@ from loguru import logger
 from thatway import Setting
 
 from .dialogs import ActivitySelector
-from ..base import BaseSidebar, BaseActivity
+from ..base import BaseSidebar, BaseActivity, BaseSidebarWidgets
 from ...assets import Icons
 
 
 __all__ = ("FileExplorerSidebar",)
 
 
-class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
+class FileExplorerSidebarWidgets(BaseSidebarWidgets):
+    """The FileExplorerSidebar's widgets attribute"""
+
+    main: QTreeView
+
+
+class FileExplorerSidebar(
+    BaseSidebar, name="EXPLORER", widgets_cls=FileExplorerSidebarWidgets
+):
     """The file explorer sidebar"""
 
     #: The root path to use with the file explorer.
@@ -33,8 +41,11 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
     #: Default icon, if one isn't specified
     icon: QIcon
 
-    #: The file system model for the file explorer view
+    #: The file system model for the file explorer sidebar
     model: QFileSystemModel
+
+    #: The widget for the file explorer sidebar view
+    widgets: FileExplorerSidebarWidgets
 
     def __init__(
         self,
@@ -62,8 +73,8 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
         super().__init__(*args, icon=icon, **kwargs)  # parent runs create_main_widget
 
         # Connect signals
-        view: QTreeView = self.widgets.view
-        view.doubleClicked.connect(self.load_activity)
+        main = self.widgets.main
+        main.doubleClicked.connect(self.load_activity)
 
     def reset_main_widget(self):
         # Create the File explorer sidebar model
@@ -73,30 +84,30 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
         model = self.model
 
         # Create the File explorer sidebar view
-        if not hasattr(self.widgets, "view") or self.widgets.view is None:
-            self.widgets.view = QTreeView()
-        view = self.widgets.view
+        if not hasattr(self.widgets, "main") or self.widgets.main is None:
+            self.widgets.main = QTreeView()
+        main = self.widgets.main
 
         # Configure the file explorer sidebar
-        view.setModel(model)
-        view.setRootIndex(model.index(str(self.rootpath)))
+        main.setModel(model)
+        main.setRootIndex(model.index(str(self.rootpath)))
         logger.info(f"FileExplorerSidebar loaded rootpath {self.rootpath}")
 
-        view.setIndentation(10)  # the intentation level of children
+        main.setIndentation(10)  # the intentation level of children
 
         # Show only the filename column
         for i in range(1, 4):
-            view.hideColumn(i)
-        view.setHeaderHidden(True)  # don't show header
+            main.hideColumn(i)
+        main.setHeaderHidden(True)  # don't show header
 
-        return view
+        return main
 
     def selected_filepaths(
         self, *indices: t.Tuple[QModelIndex, ...]
     ) -> t.Tuple[Path, ...]:
         """Retrieve the selected filepath"""
         # Retrieve selected indices if no indices were passed
-        view: QTreeView = self.widgets.view
+        view = self.widgets.main
         indices: t.Tuple[QModelIndex] = indices if indices else view.selectedIndexes()
 
         filepaths = []

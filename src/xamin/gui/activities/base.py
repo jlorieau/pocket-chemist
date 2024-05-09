@@ -4,7 +4,6 @@ sidebars
 """
 
 import typing as t
-from types import SimpleNamespace
 
 from PyQt6.QtCore import Qt, QAbstractItemModel, pyqtSignal, QObject
 from PyQt6.QtWidgets import QWidget, QAbstractItemView, QLabel, QVBoxLayout
@@ -12,7 +11,7 @@ from PyQt6.QtGui import QIcon, QAction
 
 from ...entry import Entry
 
-__all__ = ("BaseActivity", "BaseSidebar")
+__all__ = ("BaseActivity", "BaseSidebarWidgets", "BaseSidebar")
 
 
 class BaseActivity(QObject):
@@ -106,6 +105,21 @@ class BaseActivity(QObject):
 BaseActivity.activity_created = pyqtSignal(BaseActivity)
 
 
+## Sidebar classes
+
+
+class BaseSidebarWidgets:
+    """The namespace for BaseSidebar widgets"""
+
+    __slots__ = ("heading", "main")
+
+    #: The sidebar heading widget
+    heading: QLabel
+
+    #: The sidebar main widget
+    main: QWidget
+
+
 class BaseSidebar(QWidget):
     """Base sidebar class to define the sidebar interface
 
@@ -125,36 +139,35 @@ class BaseSidebar(QWidget):
     icon: QIcon | None
 
     #: The sidebar sub-widgets
-    #: widgets.heading  (the heading of the sidebar)
-    #: widgets.main  (the main widget of the sidebar)
-    widgets: SimpleNamespace
+    widgets: BaseSidebarWidgets
 
     #: Signal emitted when a data entry is loaded
     entry_loaded = pyqtSignal()
 
     #: A listing of subclasses
-    _subclasses = []
+    _subclasses: t.ClassVar[list[t.Type["BaseSidebar"]]] = []
 
-    def __init_subclass__(cls, name: str) -> None:
+    #: The widgets class to use
+    _widgets_cls: t.ClassVar[t.Type[BaseSidebarWidgets]]
+
+    def __init_subclass__(cls, name: str, widgets_cls: BaseSidebarWidgets) -> None:
         """Initialize required class attributes for subclasses"""
         super().__init_subclass__()
         cls.name = name
+        cls._widgets_cls = widgets_cls
         BaseSidebar._subclasses.append(cls)
 
     def __init__(self, *args, icon: t.Optional[QIcon] = None, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Create the widgets
-        self.widgets = SimpleNamespace()
+        self.widgets = self.__class__._widgets_cls()
         self.widgets.heading = QLabel(self.name)
         self.widgets.heading.setAlignment(
             Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
         )
 
         self.widgets.main = self.reset_main_widget()
-
-        # Create the models namespace
-        self.models = SimpleNamespace()
 
         # Place in VBoxLayout
         layout = QVBoxLayout()

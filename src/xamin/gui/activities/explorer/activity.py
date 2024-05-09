@@ -15,6 +15,8 @@ __all__ = ("FileExplorerActivity",)
 class FileExplorerActivity(BaseActivity):
     """A file activity for loading files"""
 
+    sidebars: list[FileExplorerSidebar]
+
     #: A file explorer should always be present
     persistent: bool = True
 
@@ -27,5 +29,5 @@ class FileExplorerActivity(BaseActivity):
         super().__init__(*entries, parent=parent)
 
         # Create the sidebar
-        sidebar = FileExplorerSidebar()
+        sidebar = FileExplorerSidebar(rootpath=rootpath)
         self.sidebars.append(sidebar)
