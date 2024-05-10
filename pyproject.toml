@@ -1,3 +1,49 @@
+# Modeled against https://github.com/pytest-dev/pytest/blob/main/pyproject.toml
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "xamin"
+authors = [
+    {name = "Justin Lorieau", email = "justin@lorieau.com"},
+]
+description = "Software for the analysis of datasets, spectra and molecules"
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["examine", "analysis", "scientific", "gui"]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+dependencies = [
+    "click >= 8.0.3",
+    "PyYAML >= 6.0",
+    "loguru >= 0.5.3",
+    "thatway >= 0.6",
+    "pyqt6 >= 6.6"
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+tests = [
+    "pytest >= 6.2", 
+    "pytest-qt >= 4.4"
+]
+dev = [
+    "pyinstaller >= 6.5", 
+    "black >= 24.3", 
+    "mypy >= 1.10"
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "xamin.__about__.__version__"}
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules"
+testpaths = [
+    "tests",
+    "src"  # doctests
+]
