@@ -4,7 +4,6 @@ The main (root) application and window
 
 import typing as t
 from pathlib import Path
-from types import SimpleNamespace
 
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
@@ -55,6 +54,33 @@ class MainApplication(QApplication):
             logger.info(f"QApplication style sheet loaded: {qss_file}")
 
 
+# Main Window classes
+
+
+class MainWindowWidgets:
+    """The collection of widgets for the window"""
+
+    __slots__ = ("root", "menubar", "toolbar", "splitter", "sidebars", "tabs")
+
+    #: The root main window
+    root: "MainWindow"
+
+    #: The main window menubar
+    menubar: Menubar
+
+    #: The main toolbar
+    toolbar: Toolbar
+
+    #: The splitter between the sidebars and the main views
+    splitter: QSplitter
+
+    #: The stack of sidebars from activities
+    sidebars: QStackedWidget
+
+    #: The tabs for activity views
+    tabs: QTabWidget
+
+
 class MainWindow(QMainWindow):
     """The main (root) window"""
 
@@ -84,7 +110,7 @@ class MainWindow(QMainWindow):
     actions: Actions
 
     #: Widget tree for the main window
-    widgets: SimpleNamespace
+    widgets: MainWindowWidgets
 
     #: Activities owned by the main window
     activities: t.List[BaseActivity]
@@ -134,14 +160,14 @@ class MainWindow(QMainWindow):
 
         # Resize the splitter
 
-    def reset_widgets(self) -> SimpleNamespace:
+    def reset_widgets(self) -> MainWindowWidgets:
         """Create and reset the configuration for widgets of the main window
 
         This method is intended to be run idempotently and (re-)configure widgets
         """
         if not hasattr(self, "widgets"):
             # Set the widget namespace
-            self.widgets = SimpleNamespace()
+            self.widgets = MainWindowWidgets()
 
         if not hasattr(self.widgets, "root"):
             self.widgets.root = self
