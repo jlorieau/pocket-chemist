@@ -38,6 +38,9 @@ dev = [
     "mypy >= 1.10"
 ]
 
+[project.scripts]
+xm = "xamin.__main__:main"
+
 [tool.setuptools.dynamic]
 version = {attr = "xamin.__about__.__version__"}
 
