@@ -4,11 +4,11 @@ tasks:
   install:
     desc: "Install xamin"
     cmds:
-      - pip install .
+      - pip3 install .
   develop:
     desc: "Install xamin in (editable) developer mose"
     cmds:
-      - pip install --editable .[tests,dev]
+      - pip3 install --editable .[tests,dev]
 
   build:
     desc: "Build xamin with pyinstaller"
