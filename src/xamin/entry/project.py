@@ -148,7 +148,7 @@ class Project(YamlEntry):
         # meta:
         if text is not None:
             stripped = re.sub(r"#.*", "", text).strip()  # Remove comments, whitespace
-            return re.match("!Project\n\s*(meta|entries):", stripped)
+            return re.match(r"!Project\n\s*(meta|entries):", stripped)
         else:
             return False
 
