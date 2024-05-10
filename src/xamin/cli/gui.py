@@ -1,6 +1,8 @@
 """Click interface for gui"""
 
 import click
+from loguru import logger
+
 from ..hookimpls import xamin
 
 
@@ -24,4 +26,5 @@ def gui(args):
     window.show()
 
     # Show the window and start root app
+
     app.exec()

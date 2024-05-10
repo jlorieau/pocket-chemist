@@ -1,7 +1,0 @@
-QListView {
-    selection-background-color: #0000aa;
-}
-
-QListView::item {
-    padding: 0.5em;
-}
