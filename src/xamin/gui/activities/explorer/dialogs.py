@@ -8,7 +8,6 @@ Dialog to select which view to open
 
 import typing as t
 import re
-from types import SimpleNamespace
 from pathlib import Path
 
 
@@ -25,11 +24,26 @@ __all__ = ("ActivitySelector",)
 SelectorTypes = t.Type[Entry] | t.Type[BaseActivity]
 
 
+class ActivitySelectorWidgets:
+    """The collection of widgets for the ActivitySelector class"""
+
+    __slots__ = ("buttons", "entry_types_combobox", "activity_types_combobox")
+
+    #: The collection of buttons for the dialog window
+    buttons: QDialogButtonBox
+
+    #: The combobox for selecting the Entry type
+    entry_types_combobox: QComboBox
+
+    #: The combobox for selecting the Activity type
+    activity_types_combobox: QComboBox
+
+
 class ActivitySelector(QDialog):
     """Dialog box on file open to select entry and activity types"""
 
     #: The child widgets of the view selector
-    widgets: SimpleNamespace
+    widgets: ActivitySelectorWidgets
 
     #: Base class attribute for the cached names (strings) of classes
     _class_names: t.Dict[str, SelectorTypes]
@@ -38,7 +52,7 @@ class ActivitySelector(QDialog):
         super().__init__(*args, **kwargs)
 
         # Configure the attributes
-        self.widgets = SimpleNamespace()
+        self.widgets = ActivitySelectorWidgets()
         self._class_names = dict()
 
         # Configure the dialog
@@ -211,7 +225,7 @@ class ActivitySelector(QDialog):
         if not hasattr(self.widgets, "entry_types_combobox"):
             return None
 
-        combo: QComboBox = self.widgets.entry_types_combobox
+        combo = self.widgets.entry_types_combobox
         cls_name = combo.currentText()
         return self.name_to_class(cls_name)
 
@@ -221,6 +235,6 @@ class ActivitySelector(QDialog):
         if not hasattr(self.widgets, "activity_types_combobox"):
             return None
 
-        combo: QComboBox = self.widgets.activity_types_combobox
+        combo = self.widgets.activity_types_combobox
         cls_name = combo.currentText()
         return self.name_to_class(cls_name)
