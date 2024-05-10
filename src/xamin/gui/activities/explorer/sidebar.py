@@ -74,7 +74,7 @@ class FileExplorerSidebar(
 
         # Connect signals
         main = self.widgets.main
-        main.doubleClicked.connect(self.load_activity)
+        main.doubleClicked.connect(self.load_activities)
 
     def reset_main_widget(self):
         # Create the File explorer sidebar model
@@ -117,7 +117,7 @@ class FileExplorerSidebar(
 
         return filepaths
 
-    def load_activity(
+    def load_activities(
         self, *indices: t.Tuple[QModelIndex, ...]
     ) -> t.Tuple[BaseActivity, ...]:
         """Load the selected filepaths as entries into an activity"""
