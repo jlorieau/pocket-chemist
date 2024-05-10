@@ -24,18 +24,22 @@ class Actions(SimpleNamespace):
         The main window widget that controls the actions
     """
 
+    #: Exit application action
+    exit: QAction
+
+    #: Open file or directory action
+    open: QAction
+
     def __init__(
         self, shortcuts: Config, icons: SimpleNamespace, parent: QWidget | None = None
     ):
         super().__init__()
 
-        # Exit application action
         self.exit = QAction(icons.actions.application_exit, "Exit", parent=parent)
         self.exit.setShortcut(shortcuts.exit)
         self.exit.setStatusTip("Exit")
         self.exit.triggered.connect(parent.close)
 
-        # Open application action
         self.open = QAction(icons.actions.document_open, "Open", parent=parent)
         self.open.setShortcut(shortcuts.open)
         self.open.setStatusTip("Open")
