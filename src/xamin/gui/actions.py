@@ -8,6 +8,8 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QAction
 from thatway import Config
 
+from .assets import Icons
+
 __all__ = ("Actions",)
 
 
@@ -30,9 +32,7 @@ class Actions(SimpleNamespace):
     #: Open file or directory action
     open: QAction
 
-    def __init__(
-        self, shortcuts: Config, icons: SimpleNamespace, parent: QWidget | None = None
-    ):
+    def __init__(self, shortcuts: Config, icons: Icons, parent: QWidget | None = None):
         super().__init__()
 
         self.exit = QAction(icons.actions.application_exit, "Exit", parent=parent)

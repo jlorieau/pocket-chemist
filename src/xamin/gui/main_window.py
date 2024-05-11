@@ -5,10 +5,12 @@ The main (root) application and window
 import typing as t
 from pathlib import Path
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
+    QWidget,
     QTabWidget,
     QSplitter,
     QStackedWidget,
@@ -16,7 +18,6 @@ from PyQt6.QtWidgets import (
 from loguru import logger
 from thatway import Setting
 
-from xamin.entry import Entry
 from .shortcuts import Shortcuts
 from .actions import Actions
 from .assets import Icons
@@ -106,16 +107,18 @@ class MainWindow(QMainWindow):
     #: Keyboard shortcuts for the main window
     shortcuts: Shortcuts
 
-    #: Actions for menubars/toolbars
-    actions: Actions
-
     #: Widget tree for the main window
     widgets: MainWindowWidgets
 
     #: Activities owned by the main window
     activities: t.List[BaseActivity]
 
-    def __init__(self, *args: t.Tuple[str, ...]):
+    #: Actions for menubars/toolbars
+    _actions: Actions
+
+    def __init__(
+        self, parent: QWidget | None = None, flags: Qt.WindowType = Qt.WindowType.Window
+    ) -> None:
         """Initialize the class
 
         Parameters
@@ -123,13 +126,13 @@ class MainWindow(QMainWindow):
         args
             The command-line arguments for opening the window
         """
-        super().__init__(*args)
+        super().__init__(parent, flags)
 
         # Configure assets
         self.fonts = {"default": QFont(self.font_family, self.font_size)}
         self.icons = Icons("current")
         self.shortcuts = Shortcuts()
-        self.actions = Actions(shortcuts=self.shortcuts, icons=self.icons, parent=self)
+        self._actions = Actions(shortcuts=self.shortcuts, icons=self.icons, parent=self)
         self.activities = []
 
         # Create and configure window and widgets
@@ -144,11 +147,14 @@ class MainWindow(QMainWindow):
         return self.fonts[match_names[0]] if match_names else self.fonts["default"]
 
     @property
-    def screen_size(self) -> t.Tuple[int, int]:
+    def screen_size(self) -> t.Tuple[int, int] | None:
         """The size (width, height) of the current screen in pixels"""
         screen = QApplication.primaryScreen()
-        size = screen.size()
-        return size.width(), size.height()
+        if screen is not None:
+            size = screen.size()
+            return size.width(), size.height()
+        else:
+            return None
 
     def reset_window(self):
         """Reset settings for the main window"""
@@ -175,7 +181,7 @@ class MainWindow(QMainWindow):
         # Create and configure the menubar (owner: main window)
         if not hasattr(self.widgets, "menubar"):
             self.widgets.menubar = Menubar(
-                parent=self, actions=self.actions, font=self.get_font("menubar")
+                parent=self, actions=self._actions, font=self.get_font("menubar")
             )
 
         self.setMenuBar(self.widgets.menubar)
@@ -183,7 +189,7 @@ class MainWindow(QMainWindow):
         # Create and configure the toolbar (owner: main window)
         if not hasattr(self.widgets, "toolbar"):
             self.widgets.toolbar = Toolbar(
-                parent=self, actions=self.actions, font=self.get_font("toolbar")
+                parent=self, actions=self._actions, font=self.get_font("toolbar")
             )
 
         # Create and configure the splitter (central widget, owner: main window)
@@ -258,7 +264,7 @@ class MainWindow(QMainWindow):
         # Connect the view(s)
         for view in activity.views:
             logger.info(f"Adding view '{view}' to tabs")
-            self.widgets.tabs.addWidget(view)
+            self.widgets.tabs.addTab(view, "tab")  # FIXME: Change tab name
 
-    def remove_activity():
-        """Remove activity"""
+    # def remove_activity():
+    #     """Remove activity"""
