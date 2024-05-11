@@ -20,10 +20,10 @@ class Assets:
     relpath: Path
 
     #: The sub-directories below relpath containing the assets
-    subdirs: t.Tuple[str, ...]
+    subdirs: tuple[str | Path, ...]
 
     #: The extensions of asset files
-    extensions: t.Tuple[str, ...]
+    extensions: tuple[str, ...]
 
     #: The assets namespace
     assets: SimpleNamespace
@@ -39,7 +39,7 @@ class Assets:
     _re_underscore = re.compile(r"-")
     _re_strip_suffix = re.compile(r"\..*")
 
-    def __new__(cls, *subdirs: t.Tuple[str, ...]):
+    def __new__(cls, *subdirs: str | Path):
         """Create or retrieve a single assets instance
 
         Parameters
@@ -62,7 +62,7 @@ class Assets:
         cls.relpath = abs_path / relpath
         cls.extensions = extensions
 
-    def __init__(self, *subdirs: t.Tuple[str, ...]):
+    def __init__(self, *subdirs: str | Path):
         """Initialize the Assets class and assets namespace"""
         # See if this is a single that has already been initialized. If so, bypass.
         if super().__getattribute__("_initialized"):

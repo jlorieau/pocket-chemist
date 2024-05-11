@@ -3,14 +3,11 @@ Utilities for dicts
 """
 
 import typing as t
-from collections import OrderedDict
 
 __all__ = "recursive_update"
 
 
-def recursive_update(
-    d: t.Mapping, u: t.Mapping, excludes: t.Tuple[str] = ()
-) -> t.Mapping:
+def recursive_update(d, u, excludes: t.Tuple[str, ...] = ()):
     """Recursively update mutables in dict 'd' with updates 'u'.
 
     d

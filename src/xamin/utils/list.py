@@ -1,10 +1,11 @@
 """
 Utilities for lists
 """
+
 import typing as t
 
 
-def wraplist(obj, default=None) -> t.List:
+def wraplist(obj, default=None) -> list:
     """Wrap the object in a list, if needed
 
     Parameters
@@ -26,7 +27,7 @@ def wraplist(obj, default=None) -> t.List:
     """
     if obj is None:
         return default if default is not None else []
-    elif hasattr(obj, '__iter__') and not isinstance(obj, str):
+    elif hasattr(obj, "__iter__") and not isinstance(obj, str):
         # Nothing to do, we've good
         return obj
     else:

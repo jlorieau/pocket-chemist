@@ -4,6 +4,7 @@
 import typing as t
 import pickle
 from abc import ABC, abstractmethod
+from collections.abc import Buffer
 from dataclasses import dataclass
 from pathlib import Path
 from hashlib import sha256
@@ -62,7 +63,7 @@ class Entry(ABC, t.Generic[T]):
 
     #: The encoding for serialize data, if it's in text format
     #: If it's binary data, then the encoding should be the bytes type
-    encoding = "utf-8"
+    encoding: str | type[bytes] = "utf-8"
 
     #: Cached data
     _data: T
@@ -133,7 +134,7 @@ class Entry(ABC, t.Generic[T]):
         return list(sort)
 
     @classmethod
-    def get_hint(cls, path: Path) -> Hint | None:
+    def get_hint(cls, path: Path | None) -> Hint | None:
         """Retrieve the hint bytes from the given path
 
         Parameters
@@ -148,6 +149,8 @@ class Entry(ABC, t.Generic[T]):
             None if a hint could not be retrieved. This can happen if the file
             is not readable or doesn't exist.
         """
+        if path is None:
+            return None
         # Read the first 'hint_size' bytes from the file
         try:
             with open(path, "rb") as f:
@@ -177,7 +180,7 @@ class Entry(ABC, t.Generic[T]):
 
     @classmethod
     def guess_type(
-        cls, path: Path, hint: bytes | None = None
+        cls, path: Path, hint: Hint | None = None
     ) -> t.Union[t.Type["Entry"], None]:
         """Try to guess the correct Entry class from the given path and (optional)
         hint.
@@ -231,7 +234,7 @@ class Entry(ABC, t.Generic[T]):
     def score(cls) -> int:
         """Evaluate the score (precedence) of this class in relation to other
         concrete Entry classes"""
-        if hasattr(cls.__base__, "score"):
+        if hasattr(cls.__base__, "score") and cls.__base__ is not None:
             # Increment the score by 10 for each class inheritance
             return cls.__base__.score() + 10
         else:
@@ -245,12 +248,14 @@ class Entry(ABC, t.Generic[T]):
         # Setup logger
         if __debug__:
 
-            def state(value, reason):
+            def state(value: bool, reason: str) -> bool:
                 logger.debug(f"{self.__class__.__name__}.is_stale={value}. {reason}")
                 return value
 
         else:
-            state = lambda s: s
+
+            def state(value: bool, reason: str) -> bool:
+                return value
 
         # Evaluate the state
         if not hasattr(self, "_data"):
@@ -297,12 +302,14 @@ class Entry(ABC, t.Generic[T]):
         # Setup logger
         if __debug__:
 
-            def state(value, reason):
+            def state(value: bool, reason: str) -> bool:
                 logger.debug(f"{self.__class__.__name__}.is_unsaved={value}. {reason}")
                 return value
 
         else:
-            state = lambda s: s
+
+            def state(value: bool, reason: str) -> bool:
+                return value
 
         # Evaluate the state
         if getattr(self, "path", None) is None:
@@ -372,7 +379,7 @@ class Entry(ABC, t.Generic[T]):
         """A factory method to return a new instance of self.data"""
         return None
 
-    def serialize(self, data: T) -> str | bytes:
+    def serialize(self, data: T) -> Buffer | str:
         """Serialize (dump) this entry or the specified data to text or bytes.
 
         Parameters
@@ -385,9 +392,12 @@ class Entry(ABC, t.Generic[T]):
         serialized
             The data serialized in text (str) or binary (bytes) format.
         """
-        return data
+        if isinstance(data, Buffer | str):
+            return data
+        else:
+            raise NotImplementedError
 
-    def deserialize(self, serialized: str | bytes) -> T:
+    def deserialize(self, serialized: Buffer | str) -> T:
         """Deserialize (load) this entry or the specified data to text or bytes.
 
         Parameters
@@ -400,7 +410,7 @@ class Entry(ABC, t.Generic[T]):
         data
             The deserialized data
         """
-        return serialized
+        return self._data
 
     def pre_load(self, *args, **kwargs):
         """Before loading data, perform actions, like setting a default, if needed.
@@ -502,14 +512,14 @@ class Entry(ABC, t.Generic[T]):
             than those in this entry's data.
         """
         # Perform checks and raise exceptions
-        self.pre_save(overwrite=overwrite, *args, **kwargs)
+        self.pre_save(overwrite=overwrite, *args, **kwargs)  # type: ignore[misc]
 
         # Save the data
         if self.is_unsaved and self.path is not None:
             serialized = self.serialize(self._data)
-            if self.encoding == bytes:
+            if self.encoding == bytes and isinstance(serialized, Buffer):
                 self.path.write_bytes(serialized)
-            else:
+            elif isinstance(serialized, str):
                 self.path.write_text(serialized, encoding=self.encoding)
 
         # Resets flags

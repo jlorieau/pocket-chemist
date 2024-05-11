@@ -11,7 +11,7 @@ __all__ = ("BinaryEntry",)
 class BinaryEntry(Entry[bytes]):
     """A binary file entry in a project"""
 
-    encoding = bytes
+    encoding: type[bytes] = bytes
 
     @classmethod
     def score(cls) -> int:

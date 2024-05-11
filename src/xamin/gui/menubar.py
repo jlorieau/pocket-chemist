@@ -40,5 +40,7 @@ class Menubar(QMenuBar):
         # Populate menubar
         if actions is not None:
             fileMenu = self.addMenu("&File")  # File
-            fileMenu.addAction(actions.open)  # File->Open
-            fileMenu.addAction(actions.exit)  # File->Exit
+
+            if fileMenu is not None:
+                fileMenu.addAction(actions.open)  # File->Open
+                fileMenu.addAction(actions.exit)  # File->Exit

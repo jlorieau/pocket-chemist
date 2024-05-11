@@ -38,7 +38,9 @@ class Actions(SimpleNamespace):
         self.exit = QAction(icons.actions.application_exit, "Exit", parent=parent)
         self.exit.setShortcut(shortcuts.exit)
         self.exit.setStatusTip("Exit")
-        self.exit.triggered.connect(parent.close)
+
+        if parent is not None:
+            self.exit.triggered.connect(parent.close)
 
         self.open = QAction(icons.actions.document_open, "Open", parent=parent)
         self.open.setShortcut(shortcuts.open)

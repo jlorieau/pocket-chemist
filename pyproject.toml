@@ -11,7 +11,7 @@ authors = [
 ]
 description = "Software for the analysis of datasets, spectra and molecules"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 keywords = ["examine", "analysis", "scientific", "gui"]
 license = {text = "MIT"}
 classifiers = [
@@ -35,8 +35,9 @@ tests = [
 dev = [
     "pyinstaller >= 6.5", 
     "black >= 24.3", 
-    "mypy >= 1.10"
+    "mypy >= 1.10",
 ]
+
 
 [project.scripts]
 xm = "xamin.__main__:main"
