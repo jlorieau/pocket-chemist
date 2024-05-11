@@ -22,9 +22,9 @@ class FileExplorerActivity(BaseActivity):
 
     def __init__(
         self,
-        *entries: t.Tuple[Entry, ...],
-        rootpath: t.Optional[str] = None,
-        parent: t.Optional[QWidget] = None
+        *entries: Entry,
+        rootpath: str | None = None,
+        parent: QWidget | None = None,
     ):
         super().__init__(*entries, parent=parent)
 

@@ -25,19 +25,19 @@ class BaseActivity(QObject):
     """
 
     #: The data entries related to the activity
-    entries: list[Entry]
+    entries: t.Sequence[Entry]
 
     # processors
     # process_queue: list[Processor]
 
     #: The data model(s) for the view
-    models: list[QAbstractItemModel]
+    models: t.Sequence[QAbstractItemModel]
 
     #: The view widget(s) associate with the model to display
-    views: list[QWidget]
+    views: t.Sequence[QWidget]
 
     #: The sidebar(s) associated with the view
-    sidebars: list["BaseSidebar"]
+    sidebars: t.Sequence["BaseSidebar"]
 
     #: Whether the activity is "uncloseable"
     persistent: bool = False
