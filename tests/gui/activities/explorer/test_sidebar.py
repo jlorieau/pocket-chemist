@@ -85,7 +85,7 @@ def test_selected_filepaths(tmp_path, setup_fileexplorer):
     # Check that the selected_filepaths returns the same file
     paths = sidebar.selected_filepaths()
     assert len(paths) == 1
-    assert paths == [tmp_path]
+    assert paths == (tmp_path,)
 
 
 def test_load_activities(tmp_path, setup_fileexplorer):

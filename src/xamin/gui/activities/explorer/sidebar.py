@@ -34,9 +34,7 @@ class FileExplorerSidebar(
     rootpath: Path
 
     #: The default root path to use for the file explorer options: "pwd", "/", "~"
-    default_rootpath: str | Path = Setting(
-        "cwd", desc="Default root path for file explorer"
-    )
+    default_rootpath: str = Setting("cwd", desc="Default root path for file explorer")
 
     #: Default icon, if one isn't specified
     icon: QIcon
@@ -50,20 +48,19 @@ class FileExplorerSidebar(
     def __init__(
         self,
         *args,
-        rootpath: t.Optional[str] = None,
-        icon: t.Optional[QIcon] = None,
+        rootpath: str | None = None,
+        icon: QIcon | None = None,
         **kwargs,
     ):
         # Set the rootpath
         rootpath = rootpath if rootpath is not None else self.default_rootpath
 
-        if isinstance(rootpath, str):
-            # Deal with special values for the rootpath, like cwd (current workind
-            # directory) and pwd (present working directory)
-            if rootpath in ("cwd", "pwd"):
-                rootpath = Path.cwd()
-            rootpath = Path(rootpath)
-        self.rootpath = rootpath.expanduser()
+        # Deal with special values for the rootpath, like cwd (current workind
+        # directory) and pwd (present working directory)
+        if rootpath in ("cwd", "pwd"):
+            self.rootpath = Path.cwd()
+        else:
+            self.rootpath = Path(rootpath).expanduser()
 
         # Set a default icon, if one isn't specified
         if icon is None:
@@ -102,24 +99,24 @@ class FileExplorerSidebar(
 
         return main
 
-    def selected_filepaths(
-        self, *indices: t.Tuple[QModelIndex, ...]
-    ) -> t.Tuple[Path, ...]:
+    def selected_filepaths(self, *indices: QModelIndex) -> tuple[Path, ...]:
         """Retrieve the selected filepath"""
         # Retrieve selected indices if no indices were passed
         view = self.widgets.main
-        indices: t.Tuple[QModelIndex] = indices if indices else view.selectedIndexes()
+        selected_indices = list(indices) if indices else view.selectedIndexes()
 
         filepaths = []
-        for index in indices:
-            filepath = index.model().filePath(index)
+        for index in selected_indices:
+            model = index.model()
+            if not isinstance(model, QFileSystemModel):
+                continue
+
+            filepath = model.filePath(index)
             filepaths.append(Path(filepath))
 
-        return filepaths
+        return tuple(filepaths)
 
-    def load_activities(
-        self, *indices: t.Tuple[QModelIndex, ...]
-    ) -> t.Tuple[BaseActivity, ...]:
+    def load_activities(self, *indices: QModelIndex) -> tuple[BaseActivity, ...]:
         """Load the selected filepaths as entries into an activity"""
         # Find the selected item
         filepaths = self.selected_filepaths(*indices)
@@ -133,9 +130,13 @@ class FileExplorerSidebar(
                 entry_type = dialog.selected_entry_type()
                 activity_type = dialog.selected_activity_type()
 
+                if entry_type is None or activity_type is None:
+                    logger.error("Could not find selected entry_type or activity type")
+                    continue
+
                 # Create the entry and activity
                 entry = entry_type(path=filepath)
                 activity = activity_type(entry)
                 activities.append(activity)
 
-        return activities
+        return tuple(activities)
