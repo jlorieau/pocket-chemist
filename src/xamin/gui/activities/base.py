@@ -25,25 +25,25 @@ class BaseActivity(QObject):
     """
 
     #: The data entries related to the activity
-    entries: t.List[Entry]
+    entries: list[Entry]
 
     # processors
-    # process_queue: t.List[Processor]
+    # process_queue: list[Processor]
 
     #: The data model(s) for the view
-    models: t.List[QAbstractItemModel]
+    models: list[QAbstractItemModel]
 
     #: The view widget(s) associate with the model to display
-    views: t.List[QWidget]
+    views: list[QWidget]
 
     #: The sidebar(s) associated with the view
-    sidebars: t.List["BaseSidebar"]
+    sidebars: list["BaseSidebar"]
 
     #: Whether the activity is "uncloseable"
     persistent: bool = False
 
     #: The parent widget
-    parent: QWidget
+    parent: t.Callable[[QObject], QObject | None]
 
     #: Class attribute listing of entry types compatible with this Activity
     entry_compatibility: t.Tuple[t.Type[Entry], ...] = ()
@@ -52,14 +52,12 @@ class BaseActivity(QObject):
     activity_created: pyqtSignal  # defined below
 
     #: A listing of subclasses
-    _subclasses = []
+    _subclasses: list[type["BaseActivity"]] = []
 
     def __init_subclass__(cls) -> None:
         BaseActivity._subclasses.append(cls)
 
-    def __init__(
-        self, *entries: t.Tuple[Entry, ...], parent: t.Optional[QWidget] = None
-    ):
+    def __init__(self, *entries: Entry, parent: QWidget | None = None):
         super().__init__(parent)
 
         # Configure attributes
@@ -73,12 +71,12 @@ class BaseActivity(QObject):
         self.activity_created.emit(self)
 
     @staticmethod
-    def subclasses() -> t.Tuple[t.Type["BaseActivity"]]:
+    def subclasses() -> tuple[type["BaseActivity"], ...]:
         """Return a tuple of concrete BaseActivity subclasses"""
         return tuple(BaseActivity._subclasses)
 
     @staticmethod
-    def compatibilities(entry_type: t.Type[Entry]) -> t.Set[t.Type["BaseActivity"]]:
+    def compatibilities(entry_type: t.Type[Entry]) -> set[type["BaseActivity"]]:
         """A set of compatible Activity classes for the given entry type"""
         return set(
             cls
@@ -145,12 +143,14 @@ class BaseSidebar(QWidget):
     entry_loaded = pyqtSignal()
 
     #: A listing of subclasses
-    _subclasses: t.ClassVar[list[t.Type["BaseSidebar"]]] = []
+    _subclasses: t.ClassVar[list[type["BaseSidebar"]]] = []
 
     #: The widgets class to use
-    _widgets_cls: t.ClassVar[t.Type[BaseSidebarWidgets]]
+    _widgets_cls: t.ClassVar[type[BaseSidebarWidgets]]
 
-    def __init_subclass__(cls, name: str, widgets_cls: BaseSidebarWidgets) -> None:
+    def __init_subclass__(
+        cls, name: str, widgets_cls: type[BaseSidebarWidgets]
+    ) -> None:
         """Initialize required class attributes for subclasses"""
         super().__init_subclass__()
         cls.name = name
@@ -188,7 +188,7 @@ class BaseSidebar(QWidget):
             self.action = QAction(self.name, self.parent())
 
     @classmethod
-    def subclasses(cls) -> t.Tuple["BaseSidebar"]:
+    def subclasses(cls) -> tuple[type["BaseSidebar"], ...]:
         """Return all concrete subclasses of this class"""
         return tuple(BaseSidebar._subclasses)
 

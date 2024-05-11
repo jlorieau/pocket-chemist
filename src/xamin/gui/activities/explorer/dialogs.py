@@ -21,7 +21,7 @@ from ..base import BaseActivity
 __all__ = ("ActivitySelector",)
 
 #: The types that can be selected
-SelectorTypes = t.Type[Entry] | t.Type[BaseActivity]
+SelectorTypes = type[Entry] | type[BaseActivity]
 
 
 class ActivitySelectorWidgets:
@@ -77,12 +77,14 @@ class ActivitySelector(QDialog):
 
         # Configure the button box default buttons to make 'ok' default
         ok_button = buttonbox.button(QDialogButtonBox.StandardButton.Ok)
-        ok_button.setAutoDefault(True)
-        ok_button.setDefault(True)
+        if ok_button is not None:
+            ok_button.setAutoDefault(True)
+            ok_button.setDefault(True)
 
         cancel_button = buttonbox.button(QDialogButtonBox.StandardButton.Cancel)
-        cancel_button.setAutoDefault(False)
-        cancel_button.setDefault(False)
+        if cancel_button is not None:
+            cancel_button.setAutoDefault(False)
+            cancel_button.setDefault(False)
 
         # Connect buttonbox signals
         buttonbox.accepted.connect(self.accept)
@@ -93,7 +95,7 @@ class ActivitySelector(QDialog):
         self.setLayout(layout)
 
     def class_to_name(
-        self, cls: SelectorTypes, rstrips: t.Tuple[str] = ("Entry", "Activity")
+        self, cls: SelectorTypes, rstrips: tuple[str, ...] = ("Entry", "Activity")
     ) -> str:
         """Convert a CamelCase class name to a name string.
 
@@ -114,7 +116,7 @@ class ActivitySelector(QDialog):
 
         This method is designed to in concert with the name_to_class method.
         """
-        if hasattr(cls, "name"):
+        if cls is not None and hasattr(cls, "name"):
             name = cls.name
         else:
             # e.g. "CodeEditorActivity"
@@ -149,7 +151,7 @@ class ActivitySelector(QDialog):
         return self._class_names[name]
 
     def find_entry_types(self, filepath: Path) -> QStandardItemModel:
-        """Find the entry types compatible with the given filepath.
+        """Provide the model for entry types compatible with the given filepath.
 
         The first item is the best entry type guess.
         """
@@ -173,7 +175,7 @@ class ActivitySelector(QDialog):
         return model
 
     def find_activity_types(self, entry_type: t.Type[Entry]) -> QStandardItemModel:
-        """Provide a data model of ModelViews compatible with the given entry type"""
+        """Provide the model of ModelViews compatible with the given entry type"""
         # Find the compatible activities for the given entry_type
         activity_types = BaseActivity.compatibilities(entry_type=entry_type)
 
@@ -208,28 +210,32 @@ class ActivitySelector(QDialog):
         if not hasattr(self.widgets, "activity_types_combobox"):
             self.widgets.activity_types_combobox = QComboBox(parent=self)
 
+        # Create the combobox
+        combo = self.widgets.activity_types_combobox
+
         # Find the selected entry_type
         entry_type = self.selected_entry_type()
 
         # Get the data model
-        model = self.find_activity_types(entry_type=entry_type)
-
-        # Update the widget
-        combo = self.widgets.activity_types_combobox
-        combo.setModel(model)
+        if entry_type is not None:
+            model = self.find_activity_types(entry_type=entry_type)
+            combo.setModel(model)  # Update the widget
 
         return combo
 
-    def selected_entry_type(self) -> t.Type[Entry] | None:
+    def selected_entry_type(self) -> type[Entry] | None:
         """Retrieve the currently selected entry type form the entry_types combobox"""
         if not hasattr(self.widgets, "entry_types_combobox"):
             return None
 
         combo = self.widgets.entry_types_combobox
         cls_name = combo.currentText()
-        return self.name_to_class(cls_name)
+        cls = self.name_to_class(cls_name)
 
-    def selected_activity_type(self) -> t.Type[BaseActivity] | None:
+        assert issubclass(cls, Entry)
+        return cls
+
+    def selected_activity_type(self) -> type[BaseActivity] | None:
         """Retrieve the currently selected Activity type from the view_models
         combobox."""
         if not hasattr(self.widgets, "activity_types_combobox"):
@@ -237,4 +243,7 @@ class ActivitySelector(QDialog):
 
         combo = self.widgets.activity_types_combobox
         cls_name = combo.currentText()
-        return self.name_to_class(cls_name)
+        cls = self.name_to_class(cls_name)
+
+        assert issubclass(cls, BaseActivity)
+        return cls
