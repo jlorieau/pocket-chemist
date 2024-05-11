@@ -3,15 +3,17 @@ An entry for YAML files
 """
 
 import typing as t
+from pathlib import Path
+from collections.abc import Buffer
+
 import yaml
 import yaml.scanner
-from pathlib import Path
 
 from .entry import Entry, Hint
 
 __all__ = ("YamlEntry", "YamlType")
 
-YamlType = t.Sequence | t.Mapping
+YamlType = t.MutableMapping | t.MutableSequence
 
 
 class YamlEntry(Entry[YamlType]):
@@ -22,7 +24,7 @@ class YamlEntry(Entry[YamlType]):
         cls,
         path: Path,
         hint: Hint | None = None,
-        loader: t.Optional[yaml.Loader] = None,
+        loader: type[yaml.SafeLoader] | None = None,
     ) -> bool:
         """Overrides TextEntry parent class method to test whether a path or hint
         points to a YAML file.
@@ -62,24 +64,24 @@ class YamlEntry(Entry[YamlType]):
         return (
             True
             if isinstance(data, t.Mapping)  # May be a mapping, like a dict
-            or isinstance(data, t.List)  # May be a list or tuple
-            or isinstance(data, t.Tuple)
+            or isinstance(data, list)  # May be a list or tuple
+            or isinstance(data, tuple)
             or isinstance(data, Entry)  # A Project entry may be produced
             else False
         )
 
     @classmethod
-    def get_loader(cls, *args, **kwargs) -> yaml.BaseLoader:
+    def get_loader(cls, *args, **kwargs) -> type[yaml.SafeLoader]:
         """Retrieve the loader to deserialize YAML"""
         return yaml.SafeLoader
 
     @classmethod
-    def get_dumper(cls, *args, **kwargs) -> yaml.BaseDumper:
+    def get_dumper(cls, *args, **kwargs) -> type[yaml.SafeDumper]:
         """Retrieve the dumper to serialize YAML"""
         return yaml.SafeDumper
 
     @property
-    def shape(self) -> t.Tuple[int]:
+    def shape(self) -> tuple[int] | tuple:
         """Override parent method to give shape (size) of root tree"""
         data = self.data
         if hasattr(data, "__len__"):
@@ -90,12 +92,21 @@ class YamlEntry(Entry[YamlType]):
     def default_data(self):
         return dict()
 
-    def serialize(self, data: t.Sequence | t.Mapping) -> str | bytes:
-        """Overrides parent's (Entry) serialize implementation"""
+    def serialize(self, data: t.Sequence | t.Mapping | "YamlEntry") -> Buffer | str:
+        """Overrides parent's (Entry) serialize implementation.
+
+        The YamlEntry data option can only be used if a yaml representer was created
+        for the YamlEntry type.
+        """
         dumper = self.get_dumper()
         return yaml.dump(data, Dumper=dumper)
 
-    def deserialize(self, serialized: str | bytes) -> t.Sequence | t.Mapping:
-        """Overrides parent's (Entry) serialize implementation"""
+    def deserialize(self, serialized: Buffer | str) -> YamlType:
+        """Overrides parent's (Entry) serialize implementation
+
+        The serialized option may require a yaml constructor if a YamlEntry type
+        was serialized. (see :meth:`serialize`)
+        """
         loader = self.get_loader()
+        serialized = t.cast(str | bytes, serialized)  # Cast to work with yaml.load
         return yaml.load(serialized, Loader=loader)

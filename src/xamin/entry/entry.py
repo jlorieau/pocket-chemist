@@ -12,8 +12,6 @@ from hashlib import sha256
 from thatway import Setting
 from loguru import logger
 
-from ..utils.classes import all_subclasses
-
 __all__ = ("Entry", "MissingPath", "FileChanged")
 
 # Generic type annotation
@@ -332,7 +330,7 @@ class Entry(ABC, t.Generic[T]):
         """
         if getattr(self, "_data", None) is None:
             return ""
-        elif isinstance(self._data, str):
+        elif isinstance(self._data, str) and isinstance(self.encoding, str):
             return sha256(self._data.encode(self.encoding)).hexdigest()
         elif isinstance(self._data, bytes):
             return sha256(self._data).hexdigest()
@@ -519,8 +517,10 @@ class Entry(ABC, t.Generic[T]):
             serialized = self.serialize(self._data)
             if self.encoding == bytes and isinstance(serialized, Buffer):
                 self.path.write_bytes(serialized)
-            elif isinstance(serialized, str):
+            elif isinstance(self.encoding, str) and isinstance(serialized, str):
                 self.path.write_text(serialized, encoding=self.encoding)
+            else:
+                raise NotImplementedError
 
         # Resets flags
         self.post_save(*args, **kwargs)
