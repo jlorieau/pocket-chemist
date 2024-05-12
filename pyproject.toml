@@ -74,9 +74,7 @@ include = [
     "/src/xamin/entry",
 ]
 exclude = [
-    # Not yet type annotated
-    "/src/xamin/processors",
-    "/src/xamin/modules",
+    "**/__init__.py",
 ]
 mypy-args = ["--ignore-missing-imports"]
 
