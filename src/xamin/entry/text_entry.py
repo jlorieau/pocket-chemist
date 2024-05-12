@@ -1,6 +1,5 @@
 """An entry for text files"""
 
-import typing as t
 from pathlib import Path
 
 from .entry import Entry, Hint
@@ -34,5 +33,5 @@ class TextEntry(Entry[str]):
         hint = hint if hint is not None else cls.get_hint(path)
         return True if hint and hint.utf_8 else False
 
-    def default_data(self):
+    def default_data(self) -> str:
         return ""

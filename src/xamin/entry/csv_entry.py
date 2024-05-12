@@ -23,7 +23,7 @@ class CsvEntry(Entry[list]):
     default_delimiters = Setting(",\t", desc="The default delimiters to search")
 
     #: The cached CSV dialect
-    _dialect: t.Optional[type[csv.Dialect]] = None
+    _dialect: type[csv.Dialect] | None = None
 
     @classmethod
     def is_type(cls, path: Path | None, hint: Hint | None = None) -> bool:
@@ -57,7 +57,7 @@ class CsvEntry(Entry[list]):
         else:
             return ()
 
-    def default_data(self):
+    def default_data(self) -> list:
         return []
 
     def serialize(self, data: list) -> Buffer | str:

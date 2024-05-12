@@ -44,12 +44,44 @@ xm = "xamin.__main__:main"
 [tool.hatch.version]
 path = "src/xamin/__about__.py"
 
+# Linting settings
+[tool.mypy]
+disallow_untyped_defs = true
+
+# Test settings
+
 [tool.pytest.ini_options]
 addopts = "--doctest-modules"
 testpaths = [
     "tests",
     "src"  # doctests
 ]
+
+# Build hooks and configuration
+
+[tool.hatch.build.targets.wheel]
+only-include = ["src"]
+sources = ["src"]
+
+[tool.hatch.build.targets.wheel.hooks.mypyc]
+dependencies = [
+    "hatch-mypyc",
+    "mypy",
+    "types-PyYAML"
+]
+require-runtime-dependencies = true
+include = [
+    "/src/xamin/entry",
+]
+exclude = [
+    # Not yet type annotated
+    "/src/xamin/processors",
+    "/src/xamin/modules",
+]
+mypy-args = ["--ignore-missing-imports"]
+
+[build.targets.wheel.hooks.mypyc.options]
+opt_level = "3"
 
 # Environments
 

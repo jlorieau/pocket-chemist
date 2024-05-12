@@ -1,6 +1,5 @@
 """An entry for text files"""
 
-import typing as t
 from pathlib import Path
 
 from .entry import Entry, Hint
@@ -37,5 +36,5 @@ class BinaryEntry(Entry[bytes]):
 
         return False if hint and hint.utf_8 else True
 
-    def default_data(self):
+    def default_data(self) -> bytes:
         return b""

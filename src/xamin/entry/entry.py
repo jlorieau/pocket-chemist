@@ -75,20 +75,20 @@ class Entry(ABC, t.Generic[T]):
     #: The cached Entry subclasses
     _subclasses: t.Set[t.Type["Entry"]] = set()
 
-    def __init_subclass__(cls):
+    def __init_subclass__(cls) -> None:
         Entry._subclasses.add(cls)
 
     def __init__(self, path: t.Optional[Path] = None):
         self.path = Path(path) if path is not None else None
         super().__init__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """The string representation for this class"""
         cls_name = self.__class__.__name__
         name = f"'{self.path}'" if self.path is not None else "None"
         return f"{cls_name}(path={name})"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Test the equivalence of two entries.
 
         This method does not check self._data because this can be loaded from the path.
@@ -101,7 +101,8 @@ class Entry(ABC, t.Generic[T]):
 
         if (
             self.path is not None
-            and getattr(other, "path", None) is not None
+            and hasattr(other, "path")
+            and isinstance(other.path, Path)
             and self.path.absolute() != other.path.absolute()
         ):
             # If paths available but their absolute paths are not the same
@@ -116,13 +117,14 @@ class Entry(ABC, t.Generic[T]):
         """Get a copy of the current state for serialization"""
         return {"path": self.path}
 
-    def __setstate__(self, state: t.Dict):
+    def __setstate__(self, state: t.Dict) -> None:
         """Set the state for the entry based on the given state copy"""
         self.path = state.get("path", None)
 
     @classmethod
-    def _generics_type(cls):
+    def _generics_type(cls) -> tuple[t.Any, ...]:
         """Retrieve the type 'T' of the Entry class or subclass"""
+        assert hasattr(cls, "__orig_bases__")
         return t.get_args(cls.__orig_bases__[0])
 
     @staticmethod
@@ -275,7 +277,7 @@ class Entry(ABC, t.Generic[T]):
             return state(False, "The data mtime is as new as the file's mtime")
 
     @property
-    def is_file_newer(self):
+    def is_file_newer(self) -> bool:
         """Determine whether the file is newer than the data that was loaded from it."""
         return (
             self.path is not None
@@ -283,7 +285,7 @@ class Entry(ABC, t.Generic[T]):
             and self._data_mtime < self.path.stat().st_mtime
         )
 
-    def reset_mtime(self):
+    def reset_mtime(self) -> None:
         """Update the mtime of the loaded data (self._data_mtime) to equal that of
         the file (self.path)"""
         if self.path is not None:
@@ -337,7 +339,7 @@ class Entry(ABC, t.Generic[T]):
         else:
             return sha256(pickle.dumps(self._data)).hexdigest()
 
-    def reset_hash(self):
+    def reset_hash(self) -> None:
         """Reset the loaded hash to the new contents of self.data.
 
         This function is needed when data is freshly loaded from a file, or when
@@ -356,12 +358,12 @@ class Entry(ABC, t.Generic[T]):
         return self._data
 
     @data.setter
-    def data(self, value):
+    def data(self, value: T) -> None:
         """Set the data with the given value"""
         self._data = value
 
     @property
-    def shape(self) -> t.Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         """Return the shape of the data--i.e. the length along each data array
         dimension."""
         data = self.data
@@ -373,9 +375,9 @@ class Entry(ABC, t.Generic[T]):
         else:
             return ()
 
-    def default_data(self):
+    def default_data(self) -> T:
         """A factory method to return a new instance of self.data"""
-        return None
+        raise NotImplementedError
 
     def serialize(self, data: T) -> Buffer | str:
         """Serialize (dump) this entry or the specified data to text or bytes.
@@ -410,7 +412,7 @@ class Entry(ABC, t.Generic[T]):
         """
         return self._data
 
-    def pre_load(self, *args, **kwargs):
+    def pre_load(self) -> None:
         """Before loading data, perform actions, like setting a default, if needed.
 
         Raises
@@ -429,7 +431,7 @@ class Entry(ABC, t.Generic[T]):
                 f"unsaved changes in the data"
             )
 
-    def post_load(self):
+    def post_load(self) -> None:
         """After successfully loading data, perform actions, like resetting the
         hash and mtime.
 
@@ -437,7 +439,7 @@ class Entry(ABC, t.Generic[T]):
         self.reset_hash()
         self.reset_mtime()
 
-    def load(self, *args, **kwargs):
+    def load(self) -> None:
         """Load and return the data (self._data) or return a default data instance,
         if the data cannot be loaded from a file.
 
@@ -449,20 +451,22 @@ class Entry(ABC, t.Generic[T]):
             the changes made by the user to self.data.
         """
         # Perform check
-        self.pre_load(*args, **kwargs)
+        self.pre_load()
 
         if self.path is not None:
             if self.encoding == bytes:
-                contents = self.path.read_bytes()
+                contents_bytes: bytes = self.path.read_bytes()
+                self._data = self.deserialize(contents_bytes)
+            elif isinstance(self.encoding, str):
+                contents_str: str = self.path.read_text(encoding=self.encoding)
+                self._data = self.deserialize(contents_str)
             else:
-                contents = self.path.read_text(encoding=self.encoding)
-
-            self._data = self.deserialize(contents)
+                raise NotImplementedError
 
         # Reset flags
-        self.post_load(*args, **kwargs)
+        self.post_load()
 
-    def pre_save(self, overwrite: bool = False, *args, **kwargs):
+    def pre_save(self, overwrite: bool = False) -> None:
         """Before saving data, perform actions like checking whether a path exists
         and whether.
 
@@ -487,13 +491,13 @@ class Entry(ABC, t.Generic[T]):
         if not overwrite and hasattr(self, "_data") and self.is_stale:
             raise FileChanged(f"Cannot overwrite the file at path '{self.path}'")
 
-    def post_save(self, *args, **kwargs):
+    def post_save(self) -> None:
         """After successfully saving data, perform actions like resetting the cached
         hash and stored mtime"""
         self.reset_hash()
         self.reset_mtime()
 
-    def save(self, overwrite: bool = False, *args, **kwargs):
+    def save(self, overwrite: bool = False) -> None:
         """Save the data to self.path.
 
         Parameters
@@ -510,7 +514,7 @@ class Entry(ABC, t.Generic[T]):
             than those in this entry's data.
         """
         # Perform checks and raise exceptions
-        self.pre_save(overwrite=overwrite, *args, **kwargs)  # type: ignore[misc]
+        self.pre_save(overwrite=overwrite)  # type: ignore[misc]
 
         # Save the data
         if self.is_unsaved and self.path is not None:
@@ -523,4 +527,4 @@ class Entry(ABC, t.Generic[T]):
                 raise NotImplementedError
 
         # Resets flags
-        self.post_save(*args, **kwargs)
+        self.post_save()

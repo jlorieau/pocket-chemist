@@ -2,7 +2,6 @@
 A project containing data entries
 """
 
-from collections.abc import Buffer
 import typing as t
 import re
 from pathlib import Path, PosixPath, WindowsPath
@@ -40,8 +39,8 @@ class Project(YamlEntry):
     #:   - files: The file entries that are part of the project
     _data: t.OrderedDict[str, Entry | t.OrderedDict]
 
-    def __init__(self, *args, entries: EntryAddedType = (), **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, path: Path | None = None, entries: EntryAddedType = ()) -> None:
+        super().__init__(path=path)
 
         # Load default entries for meta and entries
         self.meta
@@ -50,7 +49,7 @@ class Project(YamlEntry):
         # populate initial entries
         self.add_entries(entries)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """The string representation for this class"""
         cls_name = self.__class__.__name__
         name = f"'{self.path}'" if self.path is not None else "None"
@@ -95,7 +94,7 @@ class Project(YamlEntry):
 
         return state
 
-    def __setstate__(self, state: t.Dict):
+    def __setstate__(self, state: dict) -> None:
         """Extend parent method (Entry) set state method with Project data"""
         # Run the parent state
         super().__setstate__(state)
@@ -154,9 +153,9 @@ class Project(YamlEntry):
             return False
 
     @classmethod
-    def get_loader(cls, *args, **kwargs) -> type[yaml.SafeLoader]:
+    def get_loader(cls) -> type[yaml.SafeLoader]:
         """Retrieve the loader to deserialize YAML"""
-        loader = super().get_loader(*args, **kwargs)
+        loader = super().get_loader()
 
         # Add custom constructors to loader (see below)
         loader.add_constructor("!Path", path_constructor)
@@ -166,9 +165,9 @@ class Project(YamlEntry):
         return loader
 
     @classmethod
-    def get_dumper(cls, *args, **kwargs) -> type[yaml.SafeDumper]:
+    def get_dumper(cls) -> type[yaml.SafeDumper]:
         """Retrieve the dumper to serialize YAML"""
-        dumper = super().get_dumper(*args, **kwargs)
+        dumper = super().get_dumper()
 
         # Add custom representers to loader (see below)
         dumper.add_representer(PosixPath, path_representer)  # Needed for paths
@@ -178,8 +177,8 @@ class Project(YamlEntry):
 
         return dumper
 
-    def default_data(self):
-        items = (
+    def default_data(self) -> OrderedDict:
+        items: tuple = (
             ("meta", OrderedDict()),
             ("entries", OrderedDict()),
         )
@@ -201,14 +200,14 @@ class Project(YamlEntry):
 
         return self.data["entries"]
 
-    def load(self, *args, **kwargs):
+    def load(self) -> None:
         """Overrides parent's load method to load the deserialized data to
         'self' instead of 'self._data'.
         """
         # Perform check
-        self.pre_load(*args, **kwargs)
+        self.pre_load()
 
-        if self.path is not None:
+        if self.path is not None and isinstance(self.encoding, str):
             contents = self.path.read_text(encoding=self.encoding)
 
             loaded_project = self.deserialize(contents)
@@ -216,17 +215,17 @@ class Project(YamlEntry):
             # Transfer '_data' (with 'meta' and 'entries') to self.
             # Use _data to avoid trigerring a load
             self._data.update(getattr(loaded_project, "_data", OrderedDict()))
-            self.path = loaded_project.path
+            self.path = loaded_project.path if hasattr(loaded_project, "path") else None
 
         # Reset flags
-        self.post_load(*args, **kwargs)
+        self.post_load()
 
-    def save(self, overwrite: bool = False, *args, **kwargs):
+    def save(self, overwrite: bool = False) -> None:
         """Overrides parent's save method to save the serialized 'self' instead of
         'self._data'."""
         try:
             # Perform checks and raise exceptions
-            self.pre_save(overwrite=overwrite, *args, **kwargs)  # type: ignore[misc]
+            self.pre_save(overwrite=overwrite)
 
             # Save the data
             if self.is_unsaved and self.path is not None:
@@ -239,9 +238,9 @@ class Project(YamlEntry):
 
         finally:
             # Resets flags
-            self.post_save(*args, **kwargs)
+            self.post_save()
 
-    def assign_unique_names(self):
+    def assign_unique_names(self) -> None:
         """Assign unique names to this project's entries.
 
         This function will also remove duplicate entries.
@@ -298,7 +297,7 @@ class Project(YamlEntry):
             # Name and place the entry in the entries dict
             self.entries[str(name)] = entry
 
-    def add_entries(self, *entries: EntryAddedType):
+    def add_entries(self, *entries: EntryAddedType) -> None:
         """Add entries to a project"""
         for value in entries:
             if isinstance(value, t.Mapping):
@@ -325,7 +324,7 @@ class Project(YamlEntry):
         # Update the project names
         self.assign_unique_names()
 
-    def add_files(self, *paths: str | Path):
+    def add_files(self, *paths: str | Path) -> None:
         """Add files and create new entries to a project"""
         # Find the paths for entries that are already registered
         existing_paths = {
@@ -362,33 +361,31 @@ class Project(YamlEntry):
 ## YAML constructors and representers for YAML loaders and dumpers
 
 
-def path_representer(dumper: yaml.SafeDumper, path: Path):
+def path_representer(dumper: yaml.SafeDumper, path: Path) -> yaml.Node:
     """Serializer (dumper) from yaml to a pathlib Path"""
-    return (
-        dumper.represent_sequence(f"!Path", list(path.parts))
-        if path is not None
-        else None
-    )
+    return dumper.represent_sequence(f"!Path", list(path.parts))
 
 
-def path_constructor(loader: yaml.SafeLoader, node):
+def path_constructor(loader: yaml.SafeLoader, node: yaml.SequenceNode) -> Path:
     """Deserializer (loader) for a pathlib Path from yaml"""
     sequence = loader.construct_sequence(node, deep=True)
     return Path(*sequence) if sequence is not None else None
 
 
-def odict_representer(dumper: yaml.SafeDumper, odict: OrderedDict):
+def odict_representer(dumper: yaml.SafeDumper, odict: OrderedDict) -> yaml.SequenceNode:
     """Serializer (dumper) from yaml to an OrderedDict"""
     return dumper.represent_sequence(f"!OrderedDict", odict.items())
 
 
-def odict_constructor(loader: yaml.SafeLoader, node):
+def odict_constructor(
+    loader: yaml.SafeLoader, node: yaml.SequenceNode
+) -> OrderedDict | None:
     """Deserializer (loader) for a pathlib Path from yaml"""
     sequence = loader.construct_sequence(node, deep=True)
     return OrderedDict(sequence) if sequence is not None else None
 
 
-def project_representer(dumper: yaml.SafeDumper, project: Project):
+def project_representer(dumper: yaml.SafeDumper, project: Project) -> yaml.MappingNode:
     """Deserializer (loader) for a Project from yaml
 
     Parameters
@@ -401,7 +398,7 @@ def project_representer(dumper: yaml.SafeDumper, project: Project):
     return dumper.represent_mapping(f"!Project", project.__getstate__())
 
 
-def project_constructor(loader: yaml.SafeLoader, node):
+def project_constructor(loader: yaml.SafeLoader, node: yaml.MappingNode) -> Project:
     """Deserializer (loader) for a Project from yaml
 
     Parameters

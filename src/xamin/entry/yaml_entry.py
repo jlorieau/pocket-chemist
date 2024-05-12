@@ -71,12 +71,12 @@ class YamlEntry(Entry[YamlType]):
         )
 
     @classmethod
-    def get_loader(cls, *args, **kwargs) -> type[yaml.SafeLoader]:
+    def get_loader(cls) -> type[yaml.SafeLoader]:
         """Retrieve the loader to deserialize YAML"""
         return yaml.SafeLoader
 
     @classmethod
-    def get_dumper(cls, *args, **kwargs) -> type[yaml.SafeDumper]:
+    def get_dumper(cls) -> type[yaml.SafeDumper]:
         """Retrieve the dumper to serialize YAML"""
         return yaml.SafeDumper
 
@@ -89,7 +89,7 @@ class YamlEntry(Entry[YamlType]):
         else:
             return ()
 
-    def default_data(self):
+    def default_data(self) -> dict:
         return dict()
 
     def serialize(self, data: t.Sequence | t.Mapping | "YamlEntry") -> Buffer | str:
