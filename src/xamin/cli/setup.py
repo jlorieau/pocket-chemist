@@ -9,7 +9,6 @@ import click
 
 from .main import xamin
 from ..processors import Processor
-from ..modules import Module
 from ..utils.classes import all_subclasses
 
 
@@ -41,20 +40,3 @@ def processors(only_concrete):
 
     for count, processor_cls in enumerate(processor_clses, 1):
         click.echo(f"{count}. {processor_cls}")
-
-
-@setup.command()
-def modules():
-    """List the available Python modules"""
-    # Retrieve a list of all module instances
-    module_objs = Module.list_instances()
-
-    # Group by category
-    modules_by_category = sorted(module_objs, key=lambda m: m.category)
-    modules_by_category = groupby(modules_by_category, key=lambda m: m.category)
-
-    for category, module_objs in modules_by_category:
-        click.echo(click.style("Category: ", bold=True) + category)
-
-        for count, module_obj in enumerate(module_objs, 1):
-            module_obj.print()
