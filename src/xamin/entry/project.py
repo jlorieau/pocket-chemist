@@ -29,15 +29,10 @@ class Project(YamlEntry):
     """A project containin data entries"""
 
     # Settings
-    default_name = Setting(
+    default_name: t.ClassVar[Setting] = Setting(
         "<unsaved> ({num})",
         desc="Default name pattern to use for entries without a path",
     )
-
-    #: A dict of data entries in this project. The following fields (keys) are included:
-    #:   - metadata: The project's metadata
-    #:   - files: The file entries that are part of the project
-    _data: t.OrderedDict[str, Entry | t.OrderedDict]
 
     def __init__(self, path: Path | None = None, entries: EntryAddedType = ()) -> None:
         super().__init__(path=path)
@@ -207,7 +202,7 @@ class Project(YamlEntry):
         # Perform check
         self.pre_load()
 
-        if self.path is not None and isinstance(self.encoding, str):
+        if self.path is not None and isinstance(self._data, t.MutableMapping):
             contents = self.path.read_text(encoding=self.encoding)
 
             loaded_project = self.deserialize(contents)

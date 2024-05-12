@@ -20,7 +20,9 @@ class CsvEntry(Entry[list]):
     """A csv/tsv file entry in a project"""
 
     #: Customizable settings
-    default_delimiters = Setting(",\t", desc="The default delimiters to search")
+    default_delimiters: t.ClassVar[Setting] = Setting(
+        ",\t", desc="The default delimiters to search"
+    )
 
     #: The cached CSV dialect
     _dialect: type[csv.Dialect] | None = None

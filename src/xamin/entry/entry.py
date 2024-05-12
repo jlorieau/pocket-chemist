@@ -57,11 +57,12 @@ class Entry(ABC, t.Generic[T]):
     path: t.Optional[Path] = None
 
     #: Settings to change the default behavior
-    hint_size = Setting(2048, desc="Size (in bytes) of the hint to read from the file")
+    hint_size: t.ClassVar[Setting] = Setting(
+        2048, desc="Size (in bytes) of the hint to read from the file"
+    )
 
-    #: The encoding for serialize data, if it's in text format
-    #: If it's binary data, then the encoding should be the bytes type
-    encoding: str | type[bytes] = "utf-8"
+    #: The encoding for serialize data. Allowed values include "utf-8", "bytes"
+    encoding: str = "utf-8"
 
     #: Cached data
     _data: T
@@ -73,7 +74,7 @@ class Entry(ABC, t.Generic[T]):
     _data_mtime: float | None = None
 
     #: The cached Entry subclasses
-    _subclasses: t.Set[t.Type["Entry"]] = set()
+    _subclasses: t.ClassVar[t.Set[t.Type["Entry"]]] = set()
 
     def __init_subclass__(cls) -> None:
         Entry._subclasses.add(cls)
@@ -128,7 +129,7 @@ class Entry(ABC, t.Generic[T]):
         return t.get_args(cls.__orig_bases__[0])
 
     @staticmethod
-    def subclasses() -> t.List[t.Type["Entry"]]:
+    def subclasses() -> list[type["Entry"]]:
         """Retrieve a list of Entry subclasses sorted by score."""
         sort = sorted([cls for cls in Entry._subclasses], key=lambda cls: cls.score())
         return list(sort)
@@ -213,20 +214,20 @@ class Entry(ABC, t.Generic[T]):
         # Find the best class from those with the highest class hierarchy level
         # i.e. the more subclassed, the more specific is a type
         highest_score = 0
-        best_cls = None
+        best_subcls = None
 
-        for cls in cls.subclasses():
-            score = cls.score()
-            is_type = cls.is_type(path=path, hint=hint)
+        for subcls in cls.subclasses():
+            score = subcls.score()
+            is_type = subcls.is_type(path=path, hint=hint)
 
             # Set a new higher score class if a compatible class if found
             if score > highest_score and is_type:
-                best_cls = cls
+                best_subcls = subcls
                 highest_score = score
 
-        if best_cls is not None:
-            logger.debug(f"Found best Entry class '{best_cls}' for path: {path}")
-            return best_cls
+        if best_subcls is not None:
+            logger.debug(f"Found best Entry class '{best_subcls}' for path: {path}")
+            return best_subcls
         else:
             return None
 
@@ -332,7 +333,7 @@ class Entry(ABC, t.Generic[T]):
         """
         if getattr(self, "_data", None) is None:
             return ""
-        elif isinstance(self._data, str) and isinstance(self.encoding, str):
+        elif isinstance(self._data, str):
             return sha256(self._data.encode(self.encoding)).hexdigest()
         elif isinstance(self._data, bytes):
             return sha256(self._data).hexdigest()
@@ -454,14 +455,12 @@ class Entry(ABC, t.Generic[T]):
         self.pre_load()
 
         if self.path is not None:
-            if self.encoding == bytes:
+            if self.encoding == "bytes":
                 contents_bytes: bytes = self.path.read_bytes()
                 self._data = self.deserialize(contents_bytes)
-            elif isinstance(self.encoding, str):
+            else:
                 contents_str: str = self.path.read_text(encoding=self.encoding)
                 self._data = self.deserialize(contents_str)
-            else:
-                raise NotImplementedError
 
         # Reset flags
         self.post_load()
@@ -519,9 +518,9 @@ class Entry(ABC, t.Generic[T]):
         # Save the data
         if self.is_unsaved and self.path is not None:
             serialized = self.serialize(self._data)
-            if self.encoding == bytes and isinstance(serialized, Buffer):
+            if self.encoding == "bytes" and isinstance(serialized, Buffer):
                 self.path.write_bytes(serialized)
-            elif isinstance(self.encoding, str) and isinstance(serialized, str):
+            elif isinstance(serialized, str):
                 self.path.write_text(serialized, encoding=self.encoding)
             else:
                 raise NotImplementedError
