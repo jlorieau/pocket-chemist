@@ -5,4 +5,3 @@ analysis and tasks
 
 from .base import *
 from .explorer import *
-from .code_editor import *
