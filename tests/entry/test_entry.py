@@ -1,6 +1,5 @@
 """Tests for the Entry classes"""
 
-import inspect
 from copy import deepcopy
 
 import pytest
@@ -66,7 +65,7 @@ def test_entry_guess_type(entry):
 def test_entry_no_path(entry_cls):
     """Test entry classes with no path"""
     # Don't run if it's an abstract class
-    if inspect.isabstract(entry_cls):
+    if entry_cls in (Entry,):
         pytest.skip()
 
     # Instantiate the entry
@@ -111,7 +110,7 @@ def test_is_stale(entry):
     # Create a new, empty entry
     new = entry.__class__()
 
-    # Make sure the new entry is a defaul
+    # Make sure the new entry is a default
     if hasattr(new, "_data"):
         del new._data
 
