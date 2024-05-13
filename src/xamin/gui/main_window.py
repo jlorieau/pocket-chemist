@@ -140,7 +140,7 @@ class MainWindow(QMainWindow):
         self.reset_widgets()
         self.reset_activities()
 
-    def get_font(self, *names) -> QFont:
+    def get_font(self, *names: str) -> QFont:
         """The font given by the given names, giving higher precendence to
         earlier names."""
         match_names = [name for name in names if name in self.fonts]
@@ -156,7 +156,7 @@ class MainWindow(QMainWindow):
         else:
             return None
 
-    def reset_window(self):
+    def reset_window(self) -> None:
         """Reset settings for the main window"""
         self.setWindowTitle("xamin")
 
@@ -227,7 +227,7 @@ class MainWindow(QMainWindow):
 
         return self.widgets
 
-    def reset_activities(self):
+    def reset_activities(self) -> None:
         """Create and configure persistent activities"""
         persistent_clses = [cls for cls in BaseActivity.subclasses() if cls.persistent]
 
@@ -239,10 +239,10 @@ class MainWindow(QMainWindow):
             activity = missing_cls()
             self.add_activity(activity=activity)
 
-    def focus_activity(self):
+    def focus_activity(self) -> None:
         """Change focus to the given activity"""
 
-    def add_activity(self, activity: BaseActivity):
+    def add_activity(self, activity: BaseActivity) -> None:
         """Add an activity to the window"""
         # Add the activity to the listings
         self.activities.append(activity)

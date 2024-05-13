@@ -51,6 +51,14 @@ exclude = [
     "tests*",
 ]
 
+[[tool.mypy.overrides]]
+module = "PyQt6.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "thatway.*"
+ignore_missing_imports = true
+
 # Test settings
 
 [tool.pytest.ini_options]

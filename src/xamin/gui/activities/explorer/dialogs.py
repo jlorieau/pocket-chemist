@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDialog, QComboBox, QDialogButtonBox, QFormLayout
+from PyQt6.QtWidgets import QDialog, QComboBox, QDialogButtonBox, QFormLayout, QWidget
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 
 from xamin.entry import Entry
@@ -48,8 +48,13 @@ class ActivitySelector(QDialog):
     #: Base class attribute for the cached names (strings) of classes
     _class_names: t.Dict[str, SelectorTypes]
 
-    def __init__(self, *args, filepath: Path, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        filepath: Path,
+        parent: QWidget | None = None,
+        flags: Qt.WindowType = Qt.WindowType.Window,
+    ):
+        super().__init__(parent=parent, flags=flags)
 
         # Configure the attributes
         self.widgets = ActivitySelectorWidgets()

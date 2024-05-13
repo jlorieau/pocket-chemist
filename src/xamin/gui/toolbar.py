@@ -5,7 +5,7 @@ Toolbar for the main window
 from types import SimpleNamespace
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QToolBar
+from PyQt6.QtWidgets import QMainWindow, QToolBar
 from PyQt6.QtGui import QFont
 from thatway import Setting
 
@@ -35,7 +35,7 @@ class Toolbar(QToolBar):
     def __init__(
         self,
         title: str | None = None,
-        parent: QWidget | None = None,
+        parent: QMainWindow | None = None,
         actions: SimpleNamespace | None = None,
         font: QFont | None = None,
     ):
@@ -43,7 +43,8 @@ class Toolbar(QToolBar):
         super().__init__(title, parent)
 
         # Configure the toolbar
-        self.setFont(font)
+        if font is not None:
+            self.setFont(font)
 
         orientation = (
             Qt.Orientation.Vertical

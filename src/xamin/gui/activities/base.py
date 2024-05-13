@@ -90,11 +90,11 @@ class BaseActivity(QObject):
 
     # Slots
 
-    def activate(self, *args):
+    def activate(self) -> None:
         """A slot to activate this activity"""
         pass
 
-    def deactivate(self, *args):
+    def deactivate(self) -> None:
         """A slot to deactivate this activity"""
         pass
 
@@ -157,8 +157,13 @@ class BaseSidebar(QWidget):
         cls._widgets_cls = widgets_cls
         BaseSidebar._subclasses.append(cls)
 
-    def __init__(self, *args, icon: t.Optional[QIcon] = None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        icon: QIcon | None = None,
+        parent: QWidget | None = None,
+        flags: Qt.WindowType = Qt.WindowType.Window,
+    ):
+        super().__init__(parent=parent, flags=flags)
 
         # Create the widgets
         self.widgets = self.__class__._widgets_cls()
@@ -192,6 +197,6 @@ class BaseSidebar(QWidget):
         """Return all concrete subclasses of this class"""
         return tuple(BaseSidebar._subclasses)
 
-    def reset_main_widget(self):
+    def reset_main_widget(self) -> QWidget:
         """Create and reset the main widget of the sidebar"""
         return QWidget()

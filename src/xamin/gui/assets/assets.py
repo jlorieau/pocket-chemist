@@ -2,6 +2,8 @@
 A base class namespace for asset singletons
 """
 
+from __future__ import annotations
+
 import typing as t
 import re
 from types import SimpleNamespace
@@ -39,7 +41,7 @@ class Assets:
     _re_underscore = re.compile(r"-")
     _re_strip_suffix = re.compile(r"\..*")
 
-    def __new__(cls, *subdirs: str | Path):
+    def __new__(cls, *subdirs: str | Path) -> Assets:
         """Create or retrieve a single assets instance
 
         Parameters
@@ -130,7 +132,7 @@ class Assets:
         else:
             return super().__getattribute__(name)
 
-    def convert(self, filepath: Path):
+    def convert(self, filepath: Path) -> QIcon:
         """Convert the given filepath to an asset object"""
         raise NotImplementedError("Convert method must be implemented by subclasses")
 
@@ -138,6 +140,6 @@ class Assets:
 class Icons(Assets, relpath=Path("icons"), extensions=("*.svg",)):
     """Icon assets"""
 
-    def convert(self, filepath: Path):
+    def convert(self, filepath: Path) -> QIcon:
         """Convert filepath to a QIcon object"""
         return QIcon(str(filepath))

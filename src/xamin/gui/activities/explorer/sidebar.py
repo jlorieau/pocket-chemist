@@ -5,8 +5,8 @@ Sidebar functionality for the FileExplorer activity
 import typing as t
 from pathlib import Path
 
-from PyQt6.QtCore import QDir, QModelIndex
-from PyQt6.QtWidgets import QTreeView
+from PyQt6.QtCore import QDir, QModelIndex, Qt
+from PyQt6.QtWidgets import QTreeView, QWidget
 from PyQt6.QtGui import QFileSystemModel, QIcon
 from loguru import logger
 from thatway import Setting
@@ -47,10 +47,10 @@ class FileExplorerSidebar(
 
     def __init__(
         self,
-        *args,
         rootpath: str | None = None,
         icon: QIcon | None = None,
-        **kwargs,
+        parent: QWidget | None = None,
+        flags: Qt.WindowType = Qt.WindowType.Window,
     ):
         # Set the rootpath
         rootpath = rootpath if rootpath is not None else self.default_rootpath
@@ -67,13 +67,15 @@ class FileExplorerSidebar(
             icons = Icons("current")
             icon = icons.actions.folders
         self.icon = icon
-        super().__init__(*args, icon=icon, **kwargs)  # parent runs create_main_widget
+
+        # parent runs create_main_widget
+        super().__init__(icon=icon, parent=parent, flags=flags)
 
         # Connect signals
         main = self.widgets.main
         main.doubleClicked.connect(self.load_activities)
 
-    def reset_main_widget(self):
+    def reset_main_widget(self) -> QWidget:
         # Create the File explorer sidebar model
         if not hasattr(self, "model") or self.model is None:
             self.model = QFileSystemModel()
