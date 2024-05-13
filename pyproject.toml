@@ -47,11 +47,14 @@ path = "src/xamin/__about__.py"
 # Linting settings
 [tool.mypy]
 disallow_untyped_defs = true
+exclude = [
+    "tests*",
+]
 
 # Test settings
 
 [tool.pytest.ini_options]
-addopts = "--doctest-modules"
+addopts = "--doctest-modules --import-mode=importlib"
 testpaths = [
     "tests",
     "src"  # doctests
