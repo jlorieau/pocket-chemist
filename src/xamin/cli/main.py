@@ -1,4 +1,7 @@
+import typing as t
 import sys
+from types import TracebackType
+
 
 import click
 from loguru import logger
@@ -11,7 +14,7 @@ __all__ = ("xamin",)
 @click.option(
     "--debug", is_flag=True, default=False, help="Display debugging information"
 )
-def xamin(debug):
+def xamin(debug: bool) -> None:
     """(e)Xamin spectra and molecules"""
     # Remove default logger
     logger.remove()
@@ -24,7 +27,11 @@ def xamin(debug):
         logger.add(sys.stderr, level="WARNING", enqueue=True, backtrace=False)
 
     # Catch exceptions and log them
-    def excepthook(exc_type, exc_value, exc_traceback):
+    def excepthook(
+        exc_type: type[BaseException],
+        exc_value: BaseException,
+        exc_traceback: TracebackType | None,
+    ) -> t.Any:
         """Catch and log exceptions, then continue"""
         # Allow Ctrl+C to exit from the terminal
         if issubclass(exc_type, KeyboardInterrupt):
@@ -38,7 +45,7 @@ def xamin(debug):
     sys.excepthook = excepthook
 
 
-def main():
+def main() -> None:
     """The CLI entrypoint"""
     # Run the root command
     xamin()

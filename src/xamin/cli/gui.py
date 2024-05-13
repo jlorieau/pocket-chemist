@@ -7,7 +7,7 @@ from .main import xamin
 
 @xamin.command()
 @click.argument("args", nargs=-1)
-def gui(args):
+def gui(args: tuple[str]) -> None:
     """The graphical user interface (GUI) arguments"""
     from ..gui import MainApplication, MainWindow
 
@@ -15,7 +15,7 @@ def gui(args):
     app = MainApplication(list(args))
 
     # Create the main window
-    window = MainWindow(*args)
+    window = MainWindow()
     window.show()
 
     # Show the window and start root app

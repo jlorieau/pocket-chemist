@@ -3,7 +3,6 @@ Setup CLI subcommand
 """
 
 from inspect import isabstract
-from itertools import groupby
 
 import click
 
@@ -13,7 +12,7 @@ from ..utils.classes import all_subclasses
 
 
 @xamin.group()
-def setup():
+def setup() -> None:
     """Print information on the current setup"""
     pass
 
@@ -25,7 +24,7 @@ def setup():
     default=False,
     help="Only show concrete (non-abstract) classes",
 )
-def processors(only_concrete):
+def processors(only_concrete: bool) -> None:
     """List the available processors"""
     # Retrieve a list of all processor classes
     processor_clses = all_subclasses(Processor)
