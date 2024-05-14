@@ -2,6 +2,8 @@
 The main (root) application and window 
 """
 
+from __future__ import annotations
+
 import typing as t
 from pathlib import Path
 
@@ -34,7 +36,7 @@ __all__ = (
 class MainApplication(QApplication):
     """The Qt GUI appication"""
 
-    style = Setting("Fusion", desc="Widget style name")
+    style: t.ClassVar[Setting] = Setting("Fusion", desc="Widget style name")
 
     stylesheet_file = Setting(
         "assets/styles/dark.qss", desc="Widget stylesheet file to use"
@@ -56,26 +58,22 @@ class MainApplication(QApplication):
 
 
 # Main Window classes
+class MainWindowWidgets(t.TypedDict):
+    """The widgets for the main window"""
 
+    #: The "MainWindow" widget
+    root: MainWindow
 
-class MainWindowWidgets:
-    """The collection of widgets for the window"""
-
-    __slots__ = ("root", "menubar", "toolbar", "splitter", "sidebars", "tabs")
-
-    #: The root main window
-    root: "MainWindow"
-
-    #: The main window menubar
+    #: The "Menubar" widget
     menubar: Menubar
 
-    #: The main toolbar
+    #: The "Toolbar" widget
     toolbar: Toolbar
 
-    #: The splitter between the sidebars and the main views
+    #: The QSplitter between the sidebars and the main views
     splitter: QSplitter
 
-    #: The stack of sidebars from activities
+    #: The sidebars from activities
     sidebars: QStackedWidget
 
     #: The tabs for activity views
@@ -86,17 +84,19 @@ class MainWindow(QMainWindow):
     """The main (root) window"""
 
     # Default window sizes
-    window_size = Setting(
+    window_size: t.ClassVar[Setting] = Setting(
         ((3840, 2160), (2560, 1440), (1920, 1080), (1366, 768), (1024, 768)),
         desc="Default window size",
     )
 
     # Default font settings
-    font_family = Setting("Helvetica", desc="Default font")
-    font_size = Setting(15, desc="Default font size")
+    font_family: t.ClassVar[Setting] = Setting("Helvetica", desc="Default font")
+    font_size: t.ClassVar[Setting] = Setting(15, desc="Default font size")
 
     #: Default project list options
-    sidebars_width = Setting(12, desc="Default width (chars) for sidebars")
+    sidebars_width: t.ClassVar[Setting] = Setting(
+        12, desc="Default width (chars) for sidebars"
+    )
 
     #: Fonts
     fonts: t.Dict[str, QFont]
@@ -106,9 +106,6 @@ class MainWindow(QMainWindow):
 
     #: Keyboard shortcuts for the main window
     shortcuts: Shortcuts
-
-    #: Widget tree for the main window
-    widgets: MainWindowWidgets
 
     #: Activities owned by the main window
     activities: t.List[BaseActivity]
@@ -137,7 +134,7 @@ class MainWindow(QMainWindow):
 
         # Create and configure window and widgets
         self.reset_window()
-        self.reset_widgets()
+        self.widgets()
         self.reset_activities()
 
     def get_font(self, *names: str) -> QFont:
@@ -164,68 +161,72 @@ class MainWindow(QMainWindow):
         max_sizes = [i for i in self.window_size if i < self.screen_size]
         self.resize(*max_sizes[0])
 
-        # Resize the splitter
-
-    def reset_widgets(self) -> MainWindowWidgets:
-        """Create and reset the configuration for widgets of the main window
+    def widgets(self) -> MainWindowWidgets:
+        """Retrieve and set the configuration for widgets of the main window
 
         This method is intended to be run idempotently and (re-)configure widgets
         """
-        if not hasattr(self, "widgets"):
-            # Set the widget namespace
-            self.widgets = MainWindowWidgets()
-
-        if not hasattr(self.widgets, "root"):
-            self.widgets.root = self
-
         # Create and configure the menubar (owner: main window)
-        if not hasattr(self.widgets, "menubar"):
-            self.widgets.menubar = Menubar(
+        menubar = self.findChild(Menubar, "menubar")
+        if menubar is None:
+            menubar = Menubar(
                 parent=self, actions=self._actions, font=self.get_font("menubar")
             )
-
-        self.setMenuBar(self.widgets.menubar)
+            menubar.setObjectName("menubar")
 
         # Create and configure the toolbar (owner: main window)
-        if not hasattr(self.widgets, "toolbar"):
-            self.widgets.toolbar = Toolbar(
+        toolbar = self.findChild(Toolbar, "toolbar")
+        if toolbar is None:
+            toolbar = Toolbar(
                 parent=self, actions=self._actions, font=self.get_font("toolbar")
             )
+            toolbar.setObjectName("toolbar")
 
         # Create and configure the splitter (central widget, owner: main window)
-        if not hasattr(self.widgets, "splitter"):
-            self.widgets.splitter = QSplitter()
+        splitter = self.findChild(QSplitter, "splitter")
+        if splitter is None:
+            splitter = QSplitter(parent=self)
+            splitter.setObjectName("splitter")
 
-        self.widgets.splitter.setHandleWidth(1)
+            self.setCentralWidget(splitter)
+            splitter.setHandleWidth(1)
 
-        # Create and configure the sidebars (owner: splitter)
-        if not hasattr(self.widgets, "sidebars"):
-            parent = self.widgets.splitter
-            self.widgets.sidebars = QStackedWidget(parent=parent)
+        # Create and configure the sidebars
+        sidebars = splitter.findChild(QStackedWidget, "sidebars")
+        if sidebars is None:
+            sidebars = QStackedWidget(parent=splitter)
+            sidebars.setObjectName("sidebars")
 
-        self.widgets.splitter.addWidget(self.widgets.sidebars)
+            splitter.addWidget(sidebars)
 
         # Create the tab widget (owner: splitter)
-        if not hasattr(self.widgets, "tabs"):
-            parent = self.widgets.splitter
-            self.widgets.tabs = QTabWidget(parent=parent)
+        tabs = splitter.findChild(QTabWidget, "tabs")
+        if tabs is None:
+            tabs = QTabWidget(parent=splitter)
+            tabs.setObjectName("tabs")
 
-        self.widgets.tabs.setFont(self.get_font("tabs"))
-        self.widgets.tabs.setTabsClosable(True)
-        self.widgets.tabs.setTabBarAutoHide(True)
-        self.widgets.tabs.setMovable(True)
+            splitter.addWidget(tabs)
 
-        # Set the central widget
-        self.setCentralWidget(self.widgets.splitter)
+            tabs.setFont(self.get_font("tabs"))
+            tabs.setTabsClosable(True)
+            tabs.setTabBarAutoHide(True)
+            tabs.setMovable(True)
 
-        # Configure the splitter size
+        # Configure the splitter
         font = self.get_font()
         width = font.pointSize() * self.sidebars_width
         current_size = self.size()
         flex_width = current_size.width() - width
-        self.widgets.splitter.setSizes((width, flex_width))
+        splitter.setSizes((width, flex_width))
 
-        return self.widgets
+        return {
+            "root": self,
+            "menubar": menubar,
+            "toolbar": toolbar,
+            "splitter": splitter,
+            "sidebars": sidebars,
+            "tabs": tabs,
+        }
 
     def reset_activities(self) -> None:
         """Create and configure persistent activities"""
@@ -249,7 +250,10 @@ class MainWindow(QMainWindow):
         logger.info(f"Loading activity '{activity}'")
 
         # Connect the sidebar(s)
-        sidebars: QStackedWidget = self.widgets.sidebars
+        widgets = self.widgets()
+        sidebars = widgets["sidebars"]
+        toolbar = widgets["toolbar"]
+        tabs = widgets["tabs"]
         for sidebar in activity.sidebars:
             logger.info(f"Adding sidebar '{sidebar}'")
 
@@ -259,12 +263,12 @@ class MainWindow(QMainWindow):
             # Add any actions to the toolbar
             action = sidebar.action
             action.triggered.connect(lambda: sidebars.setCurrentWidget(sidebar))
-            self.widgets.toolbar.addAction(action)
+            toolbar.addAction(action)
 
         # Connect the view(s)
         for view in activity.views:
             logger.info(f"Adding view '{view}' to tabs")
-            self.widgets.tabs.addTab(view, "tab")  # FIXME: Change tab name
+            tabs.addTab(view, "tab")  # FIXME: Change tab name
 
     # def remove_activity():
     #     """Remove activity"""
