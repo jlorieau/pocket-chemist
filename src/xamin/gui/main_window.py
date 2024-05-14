@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
     shortcuts: Shortcuts
 
     #: Activities owned by the main window
-    activities: t.List[BaseActivity]
+    _activities: t.List[BaseActivity]
 
     #: Actions for menubars/toolbars
     _actions: Actions
@@ -130,12 +130,12 @@ class MainWindow(QMainWindow):
         self.icons = Icons("current")
         self.shortcuts = Shortcuts()
         self._actions = Actions(shortcuts=self.shortcuts, icons=self.icons, parent=self)
-        self.activities = []
+        self._activities = []
 
         # Create and configure window and widgets
         self.reset_window()
-        self.widgets()
-        self.reset_activities()
+        self.widgets
+        self.activities
 
     def get_font(self, *names: str) -> QFont:
         """The font given by the given names, giving higher precendence to
@@ -161,6 +161,7 @@ class MainWindow(QMainWindow):
         max_sizes = [i for i in self.window_size if i < self.screen_size]
         self.resize(*max_sizes[0])
 
+    @property
     def widgets(self) -> MainWindowWidgets:
         """Retrieve and set the configuration for widgets of the main window
 
@@ -228,29 +229,36 @@ class MainWindow(QMainWindow):
             "tabs": tabs,
         }
 
-    def reset_activities(self) -> None:
-        """Create and configure persistent activities"""
+    @property
+    def activities(self) -> t.Iterable[BaseActivity]:
+        """Retrieve and set persistent activities"""
+        activities = self._activities
+
         persistent_clses = [cls for cls in BaseActivity.subclasses() if cls.persistent]
 
         # Find missing activity types
-        current_clses = [activity.__class__ for activity in self.activities]
+        current_clses = [activity.__class__ for activity in activities]
         missing_clses = [cls for cls in persistent_clses if cls not in current_clses]
 
         for missing_cls in missing_clses:
             activity = missing_cls()
             self.add_activity(activity=activity)
 
+        return self._activities
+
     def focus_activity(self) -> None:
         """Change focus to the given activity"""
 
     def add_activity(self, activity: BaseActivity) -> None:
         """Add an activity to the window"""
+        activities = self._activities
+
         # Add the activity to the listings
-        self.activities.append(activity)
+        activities.append(activity)
         logger.info(f"Loading activity '{activity}'")
 
         # Connect the sidebar(s)
-        widgets = self.widgets()
+        widgets = self.widgets
         sidebars = widgets["sidebars"]
         toolbar = widgets["toolbar"]
         tabs = widgets["tabs"]
