@@ -58,8 +58,8 @@ class MainApplication(QApplication):
 
 
 # Main Window classes
-class MainWindowWidgets(t.TypedDict):
-    """The widgets for the main window"""
+class MainWindowWidgetsDict(t.TypedDict):
+    """The widgets dict for the main window"""
 
     #: The "MainWindow" widget
     root: MainWindow
@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
         self.resize(*max_sizes[0])
 
     @property
-    def widgets(self) -> MainWindowWidgets:
+    def widgets(self) -> MainWindowWidgetsDict:
         """Retrieve and set the configuration for widgets of the main window
 
         This method is intended to be run idempotently and (re-)configure widgets

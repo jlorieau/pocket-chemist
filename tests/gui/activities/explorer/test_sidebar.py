@@ -43,7 +43,7 @@ def setup_fileexplorer(monkeypatch, qtbot):
         assert index.data() == path.name
 
         # Use the model index to select the item in the tree
-        main = sidebar.widgets.main
+        main = sidebar.main_widget
         selection_model = main.selectionModel()
         selection_model.select(index, QItemSelectionModel.SelectionFlag.Select)
 

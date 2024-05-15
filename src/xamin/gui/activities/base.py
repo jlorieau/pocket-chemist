@@ -11,7 +11,7 @@ from PyQt6.QtGui import QIcon, QAction
 
 from ...entry import Entry
 
-__all__ = ("BaseActivity", "BaseSidebarWidgets", "BaseSidebar")
+__all__ = ("BaseActivity", "BaseSidebarWidgetsDict", "BaseSidebar")
 
 
 class BaseActivity(QObject):
@@ -106,10 +106,8 @@ BaseActivity.activity_created = pyqtSignal(BaseActivity)
 ## Sidebar classes
 
 
-class BaseSidebarWidgets:
+class BaseSidebarWidgetsDict(t.TypedDict):
     """The namespace for BaseSidebar widgets"""
-
-    __slots__ = ("heading", "main")
 
     #: The sidebar heading widget
     heading: QLabel
@@ -136,25 +134,16 @@ class BaseSidebar(QWidget):
     action: QAction
     icon: QIcon | None
 
-    #: The sidebar sub-widgets
-    widgets: BaseSidebarWidgets
-
     #: Signal emitted when a data entry is loaded
     entry_loaded = pyqtSignal()
 
     #: A listing of subclasses
     _subclasses: t.ClassVar[list[type["BaseSidebar"]]] = []
 
-    #: The widgets class to use
-    _widgets_cls: t.ClassVar[type[BaseSidebarWidgets]]
-
-    def __init_subclass__(
-        cls, name: str, widgets_cls: type[BaseSidebarWidgets]
-    ) -> None:
+    def __init_subclass__(cls, name: str) -> None:
         """Initialize required class attributes for subclasses"""
         super().__init_subclass__()
         cls.name = name
-        cls._widgets_cls = widgets_cls
         BaseSidebar._subclasses.append(cls)
 
     def __init__(
@@ -165,24 +154,8 @@ class BaseSidebar(QWidget):
     ):
         super().__init__(parent=parent, flags=flags)
 
-        # Create the widgets
-        self.widgets = self.__class__._widgets_cls()
-        self.widgets.heading = QLabel(self.name)
-        self.widgets.heading.setAlignment(
-            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
-        )
-
-        self.widgets.main = self.reset_main_widget()
-
-        # Place in VBoxLayout
-        layout = QVBoxLayout()
-        layout.addWidget(self.widgets.heading)
-        layout.addWidget(self.widgets.main)
-
-        layout.setContentsMargins(0, 0, 0, 0)  # Remove padding in the layout
-        layout.setSpacing(0)  # Remove space between widgets
-
-        self.setLayout(layout)
+        # Load the widgets
+        self.widgets
 
         # Create the action
         if icon is not None:
@@ -191,6 +164,44 @@ class BaseSidebar(QWidget):
             self.action = QAction(self.icon, self.name, self.parent())
         else:
             self.action = QAction(self.name, self.parent())
+
+    @property
+    def heading_widget(self) -> QLabel:
+        """The widget for the heading label"""
+        heading = self.findChild(QLabel, "heading")
+        if heading is None:
+            heading = QLabel(self.name, parent=self)
+            heading.setObjectName("heading")
+            heading.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        return heading
+
+    @property
+    def main_widget(self) -> QWidget:
+        """The main sidebar widget"""
+        main = self.findChild(QWidget, "main")
+        if main is None:
+            main = QWidget(parent=self)
+            main.setObjectName("main")
+        return main
+
+    @property
+    def widgets(self) -> BaseSidebarWidgetsDict:
+        """Override parent method to return the File Explorer sidebar widgets"""
+        heading = self.heading_widget
+        main = self.main_widget
+
+        layout = self.layout()
+        if layout is None:
+            layout = QVBoxLayout()
+            layout.addWidget(heading)
+            layout.addWidget(main)
+
+            layout.setContentsMargins(0, 0, 0, 0)  # Remove padding in the layout
+            layout.setSpacing(0)  # Remove space between widgets
+
+            self.setLayout(layout)
+
+        return {"heading": heading, "main": main}
 
     @classmethod
     def subclasses(cls) -> tuple[type["BaseSidebar"], ...]:

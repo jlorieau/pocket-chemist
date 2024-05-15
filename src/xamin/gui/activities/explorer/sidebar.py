@@ -12,22 +12,14 @@ from loguru import logger
 from thatway import Setting
 
 from .dialogs import ActivitySelector
-from ..base import BaseSidebar, BaseActivity, BaseSidebarWidgets
+from ..base import BaseSidebar, BaseActivity
 from ...assets import Icons
 
 
 __all__ = ("FileExplorerSidebar",)
 
 
-class FileExplorerSidebarWidgets(BaseSidebarWidgets):
-    """The FileExplorerSidebar's widgets attribute"""
-
-    main: QTreeView
-
-
-class FileExplorerSidebar(
-    BaseSidebar, name="EXPLORER", widgets_cls=FileExplorerSidebarWidgets
-):
+class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
     """The file explorer sidebar"""
 
     #: The root path to use with the file explorer.
@@ -41,9 +33,6 @@ class FileExplorerSidebar(
 
     #: The file system model for the file explorer sidebar
     model: QFileSystemModel
-
-    #: The widget for the file explorer sidebar view
-    widgets: FileExplorerSidebarWidgets
 
     def __init__(
         self,
@@ -72,40 +61,45 @@ class FileExplorerSidebar(
         super().__init__(icon=icon, parent=parent, flags=flags)
 
         # Connect signals
-        main = self.widgets.main
+        main = self.main_widget
         main.doubleClicked.connect(self.load_activities)
 
-    def reset_main_widget(self) -> QWidget:
-        # Create the File explorer sidebar model
-        if not hasattr(self, "model") or self.model is None:
-            self.model = QFileSystemModel()
-            self.model.setRootPath(QDir.rootPath())
+    @property
+    def main_widget(self) -> QTreeView:
+        """Override parent method to return a tree view"""
+        # Create the file system model
+        model = getattr(self, "model", None)
+        if model is None:
+            model = QFileSystemModel()
+            model.setRootPath(QDir.rootPath())
+            self.model = model
         model = self.model
 
-        # Create the File explorer sidebar view
-        if not hasattr(self.widgets, "main") or self.widgets.main is None:
-            self.widgets.main = QTreeView()
-        main = self.widgets.main
+        # Get or create the main widget
+        main = self.findChild(QTreeView, "main")
+        if main is None:
+            main = QTreeView()
+            main.setObjectName("main")
 
-        # Configure the file explorer sidebar
-        main.setModel(model)
-        main.setRootIndex(model.index(str(self.rootpath)))
-        logger.info(f"FileExplorerSidebar loaded rootpath {self.rootpath}")
+            # Configure the file explorer sidebar
+            main.setModel(model)
+            main.setRootIndex(model.index(str(self.rootpath)))
+            logger.info(f"FileExplorerSidebar loaded rootpath {self.rootpath}")
 
-        main.setIndentation(10)  # the intentation level of children
+            main.setIndentation(10)  # the intentation level of children
 
-        # Show only the filename column
-        for i in range(1, 4):
-            main.hideColumn(i)
-        main.setHeaderHidden(True)  # don't show header
+            # Show only the filename column
+            for i in range(1, 4):
+                main.hideColumn(i)
+            main.setHeaderHidden(True)  # don't show header
 
         return main
 
     def selected_filepaths(self, *indices: QModelIndex) -> tuple[Path, ...]:
         """Retrieve the selected filepath"""
         # Retrieve selected indices if no indices were passed
-        view = self.widgets.main
-        selected_indices = list(indices) if indices else view.selectedIndexes()
+        main = self.main_widget
+        selected_indices = list(indices) if indices else main.selectedIndexes()
 
         filepaths = []
         for index in selected_indices:
