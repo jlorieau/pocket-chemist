@@ -1,9 +1,7 @@
 """
 Dialog windows for the File Explorer sidebar
-"""
 
-"""
-Dialog to select which view to open
+TODO: Convert ActivitySelectorWidgets to a TypedDict and add a 'widgets' property
 """
 
 import typing as t
