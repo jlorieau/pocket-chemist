@@ -13,4 +13,4 @@
 #   BUILD metadata MAY be denoted by appending a plus sign and a series of dot 
 #   separated identifiers. Examples: 1.0.0-alpha+001, 1.0.0+20130313144700,
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
