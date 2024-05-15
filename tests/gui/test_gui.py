@@ -5,9 +5,10 @@ Tests for GUI classes.
 import pytest
 
 from xamin.gui.main_window import MainWindow
+from xamin.gui.activities.explorer.sidebar import FileExplorerSidebar
 
 
-@pytest.mark.parametrize("cls", (MainWindow,))
+@pytest.mark.parametrize("cls", (MainWindow, FileExplorerSidebar))
 def test_widgets(cls, qtbot):
     """Test GUI classes "widgets" property"""
     obj = cls()
