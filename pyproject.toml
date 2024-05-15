@@ -83,6 +83,11 @@ dependencies = [
 require-runtime-dependencies = true
 include = [
     "/src/xamin/entry",
+
+    # The following require unsupported features by mypc, and they may be supported
+    # in the future (see https://mypyc.readthedocs.io/en/latest/differences_from_python.html#unsupported-features)
+    
+    #"/src/xamin/gui",  # PyQt6.QtCore.Qt requires nested classes
 ]
 exclude = [
     "**/__init__.py",
