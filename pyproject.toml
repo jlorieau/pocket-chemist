@@ -71,6 +71,7 @@ directory = "docs/development/newsfragments"
 package = "xamin"
 package_dir = "src"
 filename = "docs/development/changelog/NEWS.rst"
+issue_format = "`#{issue} <https://github.com/jlorieau/xamin/issues/{issue}>`_"
 
 # Test settings
 

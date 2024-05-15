@@ -1,20 +1,26 @@
 Development
 ===========
 
-Initial Setup
--------------
+Setup
+-----
 
-1. Clone the `develop` repository.
+1. Clone the `develop` repository
 
    .. code-block:: console
 
       $ git clone https://github.com/jlorieau/xamin/tree/develop
 
-2. Install the package in installable mode.
+2. Install the package in installable mode
 
    .. code-block:: console
 
       $ pip install -e .
+
+3. Make sure you're in the default virtual environment for development
+
+   .. code-block:: console
+
+      $ hatch shell
 
 Documentation
 -------------
@@ -45,6 +51,10 @@ towncrier
    .. code-block:: console
 
       $ towncrier build
+
+Publish
+-------
+
 
 .. _towncrier: https://towncrier.readthedocs.io/en/stable/index.html
 .. _issue: https://github.com/jlorieau/xamin/issues
