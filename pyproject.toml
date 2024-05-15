@@ -30,11 +30,17 @@ tests = [
     "pytest >= 6.2", 
     "pytest-qt >= 4.4"
 ]
+docs = [
+    "sphinx >= 7.3",
+    "sphinx-autobuild >= 2024",
+    "furo >= 2024"
+]
 dev = [
     "pyinstaller >= 6.5", 
     "black >= 24.3", 
     "mypy >= 1.10",
-    "types-PyYAML >= 6.0"
+    "types-PyYAML >= 6.0",
+    "towncrier >= 23"
 ]
 
 
@@ -58,6 +64,13 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "thatway.*"
 ignore_missing_imports = true
+
+# Documentation settings
+[tool.towncrier]
+directory = "docs/development/newsfragments"
+package = "xamin"
+package_dir = "src"
+filename = "docs/development/changelog/NEWS.rst"
 
 # Test settings
 
@@ -86,7 +99,7 @@ include = [
 
     # The following require unsupported features by mypc, and they may be supported
     # in the future (see https://mypyc.readthedocs.io/en/latest/differences_from_python.html#unsupported-features)
-    
+
     #"/src/xamin/gui",  # PyQt6.QtCore.Qt requires nested classes
 ]
 exclude = [
@@ -104,6 +117,15 @@ features = [
     "tests",
     "dev"
 ]
+
+[tool.hatch.envs.docs]
+features = [
+    "docs"
+]
+
+[tool.hatch.envs.docs.scripts]
+build = "PATH=$VIRTUAL_ENV/bin:$PATH sphinx-build -M html docs docs/_build/"
+serve = "PATH=$VIRTUAL_ENV/bin:$PATH sphinx-autobuild docs docs/_build/html"
 
 [tool.hatch.envs.hatch-test]
 features = [
