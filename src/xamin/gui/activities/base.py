@@ -5,9 +5,10 @@ sidebars
 
 import typing as t
 
-from PyQt6.QtCore import Qt, QAbstractItemModel, pyqtSignal, QObject
+from PyQt6.QtCore import Qt, pyqtSignal, QObject
 from PyQt6.QtWidgets import QWidget, QAbstractItemView, QLabel, QVBoxLayout
 from PyQt6.QtGui import QIcon, QAction
+from loguru import logger
 
 from ...entry import Entry
 
@@ -25,19 +26,19 @@ class BaseActivity(QObject):
     """
 
     #: The data entries related to the activity
-    entries: t.Sequence[Entry]
+    entries: list[Entry]
 
     # processors
     # process_queue: list[Processor]
 
     #: The data model(s) for the view
-    models: t.Sequence[QAbstractItemModel]
+    models: list[QObject]
 
     #: The view widget(s) associate with the model to display
-    views: t.Sequence[QWidget]
+    views: list[QWidget]
 
     #: The sidebar(s) associated with the view
-    sidebars: t.Sequence["BaseSidebar"]
+    sidebars: list["BaseSidebar"]
 
     #: Whether the activity is "uncloseable"
     persistent: bool = False
@@ -48,8 +49,9 @@ class BaseActivity(QObject):
     #: Class attribute listing of entry types compatible with this Activity
     entry_compatibility: t.Tuple[t.Type[Entry], ...] = ()
 
-    # Signals
-    activity_created: pyqtSignal  # defined below
+    # Signals (defined below class definition)
+    #: Signal emitted when an new activity is created by this activity
+    activity_created: pyqtSignal
 
     #: A listing of subclasses
     _subclasses: list[type["BaseActivity"]] = []
@@ -66,9 +68,6 @@ class BaseActivity(QObject):
         for attr in ("models", "views", "sidebars"):
             if not hasattr(self, attr):
                 setattr(self, attr, [])
-
-        # Emit the signal
-        self.activity_created.emit(self)
 
     @staticmethod
     def subclasses() -> tuple[type["BaseActivity"], ...]:
@@ -99,7 +98,6 @@ class BaseActivity(QObject):
         pass
 
 
-#: Signal emitted when a new activity is created
 BaseActivity.activity_created = pyqtSignal(BaseActivity)
 
 

@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
     shortcuts: Shortcuts
 
     #: Activities owned by the main window
-    _activities: t.List[BaseActivity]
+    _activities: list[BaseActivity]
 
     #: Actions for menubars/toolbars
     _actions: Actions
@@ -232,12 +232,10 @@ class MainWindow(QMainWindow):
     @property
     def activities(self) -> t.Iterable[BaseActivity]:
         """Retrieve and set persistent activities"""
-        activities = self._activities
-
         persistent_clses = [cls for cls in BaseActivity.subclasses() if cls.persistent]
 
         # Find missing activity types
-        current_clses = [activity.__class__ for activity in activities]
+        current_clses = [activity.__class__ for activity in self._activities]
         missing_clses = [cls for cls in persistent_clses if cls not in current_clses]
 
         for missing_cls in missing_clses:
@@ -251,11 +249,16 @@ class MainWindow(QMainWindow):
 
     def add_activity(self, activity: BaseActivity) -> None:
         """Add an activity to the window"""
-        activities = self._activities
+        # Check argument type because this method may have been invoked by a signal
+        assert isinstance(activity, BaseActivity)
 
         # Add the activity to the listings
+        activities = self._activities
         activities.append(activity)
         logger.info(f"Loading activity '{activity}'")
+
+        # Connect the activity
+        activity.activity_created.connect(self.add_activity)
 
         # Connect the sidebar(s)
         widgets = self.widgets

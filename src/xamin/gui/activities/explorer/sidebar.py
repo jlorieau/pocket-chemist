@@ -2,11 +2,10 @@
 Sidebar functionality for the FileExplorer activity
 """
 
-import typing as t
 from pathlib import Path
 
-from PyQt6.QtCore import QDir, QModelIndex, Qt
-from PyQt6.QtWidgets import QTreeView, QWidget
+from PyQt6.QtCore import QDir, QModelIndex, Qt, pyqtSignal
+from PyQt6.QtWidgets import QTreeView, QWidget, QAbstractItemView
 from PyQt6.QtGui import QFileSystemModel, QIcon
 from loguru import logger
 from thatway import Setting
@@ -33,6 +32,9 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
 
     #: The file system model for the file explorer sidebar
     model: QFileSystemModel
+
+    #: Signal emitted when an new activity is created by this sidebar
+    activity_created: pyqtSignal = pyqtSignal(BaseActivity)
 
     def __init__(
         self,
@@ -62,7 +64,7 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
 
         # Connect signals
         main = self.main_widget
-        main.doubleClicked.connect(self.load_activities)
+        main.doubleClicked.connect(self.load_activity)
 
     @property
     def main_widget(self) -> QTreeView:
@@ -86,53 +88,61 @@ class FileExplorerSidebar(BaseSidebar, name="EXPLORER"):
             main.setRootIndex(model.index(str(self.rootpath)))
             logger.info(f"FileExplorerSidebar loaded rootpath {self.rootpath}")
 
-            main.setIndentation(10)  # the intentation level of children
+            # Configure the intentation level of children
+            main.setIndentation(10)
 
-            # Show only the filename column
+            # Configure to show only the filename column
             for i in range(1, 4):
                 main.hideColumn(i)
             main.setHeaderHidden(True)  # don't show header
 
+            # Only allow 1 item to be selected or opened at a time
+            main.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
         return main
 
-    def selected_filepaths(self, *indices: QModelIndex) -> tuple[Path, ...]:
-        """Retrieve the selected filepath"""
-        # Retrieve selected indices if no indices were passed
+    def selected_filepath(self, index: QModelIndex | None = None) -> Path | None:
+        """Retrieve the filepath for the given index or the selected index from the
+        main tree view widget."""
+        # If no index was specified, get the selected indices from the widget
         main = self.main_widget
-        selected_indices = list(indices) if indices else main.selectedIndexes()
+        if index is None:
+            if main.selectedIndexes():
+                index = main.selectedIndexes()[0]
+            else:
+                return None
 
-        filepaths = []
-        for index in selected_indices:
-            model = index.model()
-            if not isinstance(model, QFileSystemModel):
-                continue
+        model = index.model()
+        assert isinstance(model, QFileSystemModel)
 
-            filepath = model.filePath(index)
-            filepaths.append(Path(filepath))
+        filepath = model.filePath(index)
+        return Path(filepath)
 
-        return tuple(filepaths)
-
-    def load_activities(self, *indices: QModelIndex) -> tuple[BaseActivity, ...]:
+    def load_activity(self, index: QModelIndex | None = None) -> BaseActivity | None:
         """Load the selected filepaths as entries into an activity"""
-        # Find the selected item
-        filepaths = self.selected_filepaths(*indices)
-        logger.info(f"Loading filepaths: {', '.join(map(str, filepaths))}")
+        # Find the selected items and pick the first one
+        filepath = self.selected_filepath(index)
+        if filepath is None:
+            return None
 
         # Load a ActivitySelector dialog
-        activities = []
-        for filepath in filepaths:
-            dialog = ActivitySelector(filepath=Path(filepath), parent=self)
-            if dialog.exec() == dialog.DialogCode.Accepted:
-                entry_type = dialog.selected_entry_type()
-                activity_type = dialog.selected_activity_type()
+        dialog = ActivitySelector(filepath=Path(filepath), parent=self)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            entry_type = dialog.selected_entry_type()
+            activity_type = dialog.selected_activity_type()
 
-                if entry_type is None or activity_type is None:
-                    logger.error("Could not find selected entry_type or activity type")
-                    continue
+            if entry_type is None or activity_type is None:
+                logger.error("Could not find selected entry_type or activity type")
+                return None
 
-                # Create the entry and activity
-                entry = entry_type(path=filepath)
-                activity = activity_type(entry)
-                activities.append(activity)
+            # Create the entry and activity
+            entry = entry_type(path=filepath)
+            activity = activity_type(entry)
 
-        return tuple(activities)
+            # Emit signal and return
+            logger.info(
+                f"Created activity '{activity.__class__.__name__}' for "
+                f"filepath '{filepath}'"
+            )
+        self.activity_created.emit(activity)
+        return activity

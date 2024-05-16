@@ -2,7 +2,7 @@
 The File Explorer activity class for coordinating the file explorer
 """
 
-import typing as t
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QWidget
 
 from xamin.entry import Entry
@@ -14,8 +14,6 @@ __all__ = ("FileExplorerActivity",)
 
 class FileExplorerActivity(BaseActivity):
     """A file activity for loading files"""
-
-    sidebars: list[FileExplorerSidebar]
 
     #: A file explorer should always be present
     persistent: bool = True
@@ -31,3 +29,6 @@ class FileExplorerActivity(BaseActivity):
         # Create the sidebar
         sidebar = FileExplorerSidebar(rootpath=rootpath)
         self.sidebars.append(sidebar)
+
+        # Connect the sidebar signal
+        sidebar.activity_created.connect(self.activity_created)

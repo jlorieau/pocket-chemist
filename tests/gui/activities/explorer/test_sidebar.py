@@ -9,6 +9,7 @@ import pytest
 from PyQt6.QtCore import QItemSelectionModel
 from PyQt6.QtWidgets import QDialog
 
+from xamin.gui.activities import BaseActivity
 from xamin.gui.activities.explorer import FileExplorerActivity
 
 
@@ -83,24 +84,23 @@ def test_selected_filepaths(tmp_path, setup_fileexplorer):
     sidebar = explorer.sidebars[0]
 
     # Check that the selected_filepaths returns the same file
-    paths = sidebar.selected_filepaths()
-    assert len(paths) == 1
-    assert paths == (tmp_path,)
+    path = sidebar.selected_filepath()
+    assert path == tmp_path
 
 
-def test_load_activities(tmp_path, setup_fileexplorer):
-    """Test the FileExplorerSidebar load_activities method"""
+def test_load_activity(tmp_path, setup_fileexplorer):
+    """Test the FileExplorerSidebar load_activity method"""
     MockEntry = namedtuple("MockEntry", "path")
-    MockActivity = namedtuple("MockActivity", "entries")
+
+    class MockActivity(BaseActivity):
+        pass
 
     explorer = setup_fileexplorer(
         tmp_path, entry_cls=MockEntry, activity_cls=MockActivity
     )
     sidebar = explorer.sidebars[0]
-    activities = sidebar.load_activities()
-
-    assert len(activities) == 1
-    activity = activities[0]
+    activity = sidebar.load_activity()
+    entry = activity.entries[0]
 
     assert isinstance(activity, MockActivity)
-    assert isinstance(activity.entries, MockEntry)
+    assert isinstance(entry, MockEntry)
