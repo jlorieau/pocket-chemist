@@ -1,6 +1,7 @@
 """An entry for text files"""
 
 from pathlib import Path
+from typing_extensions import Buffer
 
 from .entry import Entry, Hint
 
@@ -35,3 +36,7 @@ class TextEntry(Entry[str]):
 
     def default_data(self) -> str:
         return ""
+
+    def deserialize(self, serialized: Buffer | str) -> str:
+        """Override the parent class method to return the string unchanged"""
+        return serialized if isinstance(serialized, str) else ""

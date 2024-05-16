@@ -81,7 +81,12 @@ def test_entry_no_path(entry_cls):
         entry.save()
 
 
-def test_is_unsaved(entry, add_extra):
+def test_entry_data(entry):
+    """Test that data is loaded for the entry"""
+    assert entry.data
+
+
+def test_entry_is_unsaved(entry, add_extra):
     """Test the Entry is_unsaved property"""
     # Data should not be changed before the data method loads it
     assert not entry.is_unsaved

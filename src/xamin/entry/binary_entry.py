@@ -1,6 +1,7 @@
 """An entry for text files"""
 
 from pathlib import Path
+from typing_extensions import Buffer
 
 from .entry import Entry, Hint
 
@@ -38,3 +39,7 @@ class BinaryEntry(Entry[bytes]):
 
     def default_data(self) -> bytes:
         return b""
+
+    def deserialize(self, serialized: Buffer | str) -> bytes:
+        """Override the parent class method to return the bytes unchanged"""
+        return bytes(serialized) if isinstance(serialized, Buffer) else b""

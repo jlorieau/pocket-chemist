@@ -459,8 +459,12 @@ class Entry(ABC, t.Generic[T]):
                 contents_bytes: bytes = self.path.read_bytes()
                 self._data = self.deserialize(contents_bytes)
             else:
-                contents_str: str = self.path.read_text(encoding=self.encoding)
+                contents_str = self.path.read_text(encoding=self.encoding)
                 self._data = self.deserialize(contents_str)
+        else:
+            logger.info(
+                f"Could not load '{self.__class__.__name__}' because path is None"
+            )
 
         # Reset flags
         self.post_load()
