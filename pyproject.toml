@@ -15,7 +15,6 @@ license = {text = "MIT"}
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
-
 dependencies = [
     "click >= 8.0.3",
     "PyYAML >= 6.0",
@@ -28,7 +27,8 @@ dynamic = ["version"]
 [project.optional-dependencies]
 tests = [
     "pytest >= 6.2", 
-    "pytest-qt >= 4.4"
+    "pytest-qt >= 4.4",
+    "coverage >= 7.5"
 ]
 docs = [
     "sphinx >= 7.3",
@@ -42,7 +42,6 @@ dev = [
     "types-PyYAML >= 6.0",
     "towncrier >= 23"
 ]
-
 
 [project.scripts]
 xm = "xamin.__main__:main"
@@ -129,12 +128,18 @@ build = "PATH=$VIRTUAL_ENV/bin:$PATH sphinx-build -M html docs docs/_build/"
 serve = "PATH=$VIRTUAL_ENV/bin:$PATH sphinx-autobuild docs docs/_build/html"
 
 [tool.hatch.envs.hatch-test]
+default-args = ["src", "tests"]
+parallel = true
 features = [
     "tests",
 ]
 
+[tool.hatch.envs.hatch-test.scripts]
+# https://hatch.pypa.io/dev/config/internal/testing/#scripts
+run = "pytest{env:HATCH_TEST_ARGS:} {args}"  # default 'hatch test'
+run-cov = "coverage run -m pytest{env:HATCH_TEST_ARGS:} {args}" # hatch test --cover
+cov-combine = "coverage combine"
+cov-report = "coverage report"
+
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.12"]
-
-[tool.hatch.envs.hatch-test.scripts]
-run = "pytest{env:HATCH_TEST_ARGS:} {args}"

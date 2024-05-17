@@ -52,6 +52,22 @@ towncrier
 
       $ towncrier build
 
+Testing
+-------
+
+1. Use `hatch`_ or `pytest`_ to run tests in the default environment.
+
+   .. code-block:: console
+
+      $ hatch test  # Runs in parallel mode, by default
+      $ pytest
+
+2. Test code `coverage`_ can be run using `hatch`_.
+
+   .. code-block:: console
+
+      $ hatch test --cover
+
 Publish
 -------
 
@@ -61,6 +77,8 @@ Publish
 
       $ hatch publish
 
-
-.. _towncrier: https://towncrier.readthedocs.io/en/stable/index.html
+.. _coverage: https://coverage.readthedocs.io/en/latest/
+.. _hatch: https://hatch.pypa.io/dev/
 .. _issue: https://github.com/jlorieau/xamin/issues
+.. _pytest: https://docs.pytest.org/en/latest/
+.. _towncrier: https://towncrier.readthedocs.io/en/stable/index.html
