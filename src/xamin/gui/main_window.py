@@ -278,8 +278,18 @@ class MainWindow(QMainWindow):
 
         # Connect the view(s)
         for view in activity.views:
-            logger.info(f"Adding view '{view}' to tabs")
-            tabs.addTab(view, "tab")  # FIXME: Change tab name
+            # Get the entry name, if available
+            name = None
+            if activity.entries:
+                name = (
+                    activity.entries[0].path.name
+                    if activity.entries[0].path is not None
+                    else None
+                )
+            name = name if isinstance(name, str) else "unsaved"
+
+            logger.info(f"Adding view '{name}' to tabs")
+            tabs.addTab(view, name)
 
     # def remove_activity():
     #     """Remove activity"""
