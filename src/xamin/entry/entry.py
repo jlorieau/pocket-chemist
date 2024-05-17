@@ -3,6 +3,7 @@
 
 import typing as t
 import pickle
+import mimetypes
 from abc import ABC, abstractmethod
 from collections.abc import Buffer
 from dataclasses import dataclass
@@ -230,6 +231,12 @@ class Entry(ABC, t.Generic[T]):
             return best_subcls
         else:
             return None
+
+    @classmethod
+    def guess_mimetype(cls, path: Path) -> str | None:
+        """Guess the mimetype of the given path"""
+        mimetype, encoding = mimetypes.guess_type(path)
+        return mimetype
 
     @classmethod
     def score(cls) -> int:

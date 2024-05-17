@@ -1,5 +1,7 @@
 """General fixtures for the repo"""
 
+# mypy: ignore-errors
+
 import re
 import os
 import csv
@@ -7,7 +9,17 @@ import yaml
 
 import pytest
 
-from xamin.entry import Entry, TextEntry, BinaryEntry, CsvEntry, YamlEntry, Project
+from xamin.entry import (
+    Entry,
+    TextEntry,
+    PythonEntry,
+    HtmlEntry,
+    XmlEntry,
+    BinaryEntry,
+    CsvEntry,
+    YamlEntry,
+    Project,
+)
 from xamin.utils.dict import recursive_update
 
 
@@ -40,6 +52,33 @@ def text_entry(tmp_path) -> TextEntry:
     test_file = tmp_path / "test.txt"
     test_file.write_text(data)
     return TextEntry(test_file)
+
+
+@pytest.fixture
+def python_entry(tmp_path) -> PythonEntry:
+    """An temporary instance of a PythonEntry"""
+    data = "import os\n"
+    test_file = tmp_path / "test.py"
+    test_file.write_text(data)
+    return PythonEntry(test_file)
+
+
+@pytest.fixture
+def html_entry(tmp_path) -> HtmlEntry:
+    """An temporary instance of a HtmlEntry"""
+    data = "<html></html>"
+    test_file = tmp_path / "test.html"
+    test_file.write_text(data)
+    return HtmlEntry(test_file)
+
+
+@pytest.fixture
+def xml_entry(tmp_path) -> XmlEntry:
+    """An temporary instance of a XmlEntry"""
+    data = "<xml></xml>"
+    test_file = tmp_path / "test.xml"
+    test_file.write_text(data)
+    return XmlEntry(test_file)
 
 
 @pytest.fixture
@@ -100,6 +139,12 @@ def add_extra():
             entry.data += [[10, 11, 12, 13, 14, 15]]
         elif entry_type == YamlEntry:
             recursive_update(entry.data, {"e": 6, "f": 6})
+        elif entry_type == PythonEntry:
+            entry.data += "import sys\n"
+        elif entry_type == HtmlEntry:
+            entry.data += "<html></html>"
+        elif entry_type == XmlEntry:
+            entry.data += "<xml></xml>"
         elif entry_type == Project:
             recursive_update(entry.data, {"meta": {"new": "value"}})
         else:
