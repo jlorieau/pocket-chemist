@@ -1,7 +1,7 @@
 """An entry for text files"""
 
 from pathlib import Path
-from typing_extensions import Buffer
+from collections.abc import Buffer
 
 from .entry import Entry, Hint
 
