@@ -21,3 +21,9 @@ BaseSidebar > QTreeView::item:hover {
 BaseSidebar > * {
     background-color: #222222;
 }
+
+/* Tab bar customization */
+/* QTabBar::close-button {
+    image: url("src/xamin/gui/assets/icons/dark/actions/editor-close.svg");
+
+} */
