@@ -1,0 +1,1 @@
+Added mimetypes to Entry, and added PythonEntry, HtmlEntry and XmlEntry classes
